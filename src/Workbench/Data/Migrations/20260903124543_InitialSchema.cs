@@ -54,33 +54,6 @@ namespace Workbench.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProjectInvites",
-                columns: table => new
-                {
-                    Code = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InviteCodes", x => x.Code);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Tags",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Tags", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -234,11 +207,11 @@ namespace Workbench.Data.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProjectId = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
                     Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
                     Status = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    ProjectId = table.Column<int>(type: "integer", nullable: false),
                     AuthorId = table.Column<int>(type: "integer", nullable: false),
                     AssignedToId = table.Column<int>(type: "integer", nullable: true)
                 },
@@ -288,6 +261,33 @@ namespace Workbench.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProjectInvites",
+                columns: table => new
+                {
+                    Code = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    ProjectId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedById = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProjectInvites", x => x.Code);
+                    table.ForeignKey(
+                        name: "FK_ProjectInvites_AspNetUsers_CreatedById",
+                        column: x => x.CreatedById,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ProjectInvites_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProjectMemberships",
                 columns: table => new
                 {
@@ -306,6 +306,28 @@ namespace Workbench.Data.Migrations
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_ProjectMemberships_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Tags",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProjectId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    Color = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Tags", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Tags_Projects_ProjectId",
                         column: x => x.ProjectId,
                         principalTable: "Projects",
                         principalColumn: "Id",
@@ -393,30 +415,6 @@ namespace Workbench.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "IssueTag",
-                columns: table => new
-                {
-                    IssuesId = table.Column<int>(type: "integer", nullable: false),
-                    TagsId = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_IssueTag", x => new { x.IssuesId, x.TagsId });
-                    table.ForeignKey(
-                        name: "FK_IssueTag_Issues_IssuesId",
-                        column: x => x.IssuesId,
-                        principalTable: "Issues",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_IssueTag_Tags_TagsId",
-                        column: x => x.TagsId,
-                        principalTable: "Tags",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Votes",
                 columns: table => new
                 {
@@ -462,6 +460,30 @@ namespace Workbench.Data.Migrations
                         name: "FK_MilestoneItem_Milestones_MilestoneId",
                         column: x => x.MilestoneId,
                         principalTable: "Milestones",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "IssueTag",
+                columns: table => new
+                {
+                    IssuesId = table.Column<int>(type: "integer", nullable: false),
+                    TagsId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_IssueTag", x => new { x.IssuesId, x.TagsId });
+                    table.ForeignKey(
+                        name: "FK_IssueTag_Issues_IssuesId",
+                        column: x => x.IssuesId,
+                        principalTable: "Issues",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_IssueTag_Tags_TagsId",
+                        column: x => x.TagsId,
+                        principalTable: "Tags",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -668,6 +690,16 @@ namespace Workbench.Data.Migrations
                 column: "ProjectId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ProjectInvites_CreatedById",
+                table: "ProjectInvites",
+                column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectInvites_ProjectId",
+                table: "ProjectInvites",
+                column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ProjectMemberships_UserId",
                 table: "ProjectMemberships",
                 column: "UserId");
@@ -678,9 +710,9 @@ namespace Workbench.Data.Migrations
                 column: "OwnerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Tags_Name",
+                name: "IX_Tags_ProjectId_Name",
                 table: "Tags",
-                column: "Name",
+                columns: new[] { "ProjectId", "Name" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -714,9 +746,6 @@ namespace Workbench.Data.Migrations
                 name: "BoardCard");
 
             migrationBuilder.DropTable(
-                name: "ProjectInvites");
-
-            migrationBuilder.DropTable(
                 name: "IssueStatusChanges");
 
             migrationBuilder.DropTable(
@@ -724,6 +753,9 @@ namespace Workbench.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "MilestoneItem");
+
+            migrationBuilder.DropTable(
+                name: "ProjectInvites");
 
             migrationBuilder.DropTable(
                 name: "ProjectMemberships");

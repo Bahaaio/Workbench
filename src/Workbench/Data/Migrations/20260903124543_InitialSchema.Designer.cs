@@ -12,8 +12,8 @@ using Workbench.Data;
 namespace Workbench.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260831160320_AddProjectInviteForeignKeys")]
-    partial class AddProjectInviteForeignKeys
+    [Migration("20260903124543_InitialSchema")]
+    partial class InitialSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
