@@ -1,4 +1,5 @@
 @page "/projects/mine"
+@using Workbench.Components.Shared.Components
 @using Workbench.Modules.Projects.Dtos
 @using Workbench.Modules.Projects.Services
 @rendermode InteractiveServer
@@ -17,53 +18,8 @@
         </MudButton>
     </MudStack>
 
-    @if (_loading)
-    {
-        <MudProgressCircular Indeterminate="true" Class="d-flex justify-center ma-8"/>
-    }
-    else if (_projects.Count == 0)
-    {
-        <MudPaper Class="pa-8 text-center">
-            <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Large"
-                     Color="Color.Default"/>
-            <MudText Typo="Typo.h6" Class="mt-2">No projects yet</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-1">
-                You are not part of any projects yet. Create one or ask a teammate to invite you.
-            </MudText>
-        </MudPaper>
-    }
-    else
-    {
-        <MudGrid>
-            @foreach (var project in _projects)
-            {
-                <MudItem xs="12" sm="6" md="4">
-                    <MudCard Class="cursor-pointer" @onclick="() => NavigateToProject(project.Id)">
-                        <MudCardContent>
-                            <MudText Typo="Typo.h6">@project.Name</MudText>
-                            @if (!string.IsNullOrEmpty(project.Description))
-                            {
-                                <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-1"
-                                         Style="overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
-                                    @project.Description
-                                </MudText>
-                            }
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-3">
-                                <MudAvatar Size="Size.Small" Color="Color.Primary">
-                                    @(project.OwnerUsername[..1].ToUpper())
-                                </MudAvatar>
-                                <MudText Typo="Typo.caption">@project.OwnerUsername</MudText>
-                                <MudSpacer/>
-                                <MudText Typo="Typo.caption" Color="Color.Default">
-                                    @project.CreatedAt.ToString("MMM dd, yyyy")
-                                </MudText>
-                            </MudStack>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
-            }
-        </MudGrid>
-    }
+    <ProjectCardGrid Projects="_projects" Loading="_loading" OnProjectClick="NavigateToProject"
+                     EmptyDescription="You are not part of any projects yet. Create one or ask a teammate to invite you."/>
 </MudContainer>
 
 @code {

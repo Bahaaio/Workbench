@@ -1,3 +1,5 @@
+@using Workbench.Components.Shared
+@using Workbench.Components.Shared.Components
 @using Workbench.Modules.Issues.Enums
 @using Workbench.Modules.Kanban.Dtos
 @using Workbench.Modules.Kanban.Dtos.Requests
@@ -112,24 +114,7 @@ else
                                             <MudText Typo="Typo.caption" Color="MudBlazor.Color.Default">
                                                 #@card.IssueId
                                             </MudText>
-                                            @if (card.IssueStatus == Status.Open)
-                                            {
-                                                <MudChip T="string" Size="Size.Small"
-                                                         Color="MudBlazor.Color.Success">Open
-                                                </MudChip>
-                                            }
-                                            else if (card.IssueStatus == Status.InProgress)
-                                            {
-                                                <MudChip T="string" Size="Size.Small"
-                                                         Color="MudBlazor.Color.Warning">In Progress
-                                                </MudChip>
-                                            }
-                                            else
-                                            {
-                                                <MudChip T="string" Size="Size.Small"
-                                                         Color="MudBlazor.Color.Default">Closed
-                                                </MudChip>
-                                            }
+                                            <StatusChip Status="card.IssueStatus"/>
                                         </MudStack>
                                     </MudStack>
                                 </MudPaper>
@@ -272,7 +257,7 @@ else
     private int? _draggedSourceColumnId;
     private int? _draggedColumnId;
 
-    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+    private readonly DialogOptions _dialogOptions = AppDialogOptions.Small;
 
     protected override async Task OnInitializedAsync()
     {

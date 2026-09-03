@@ -1,0 +1,48 @@
+@using Workbench.Modules.Issues.Dtos
+@using Workbench.Modules.Issues.Enums
+
+<MudTable Items="Issues" Hover="true" Dense="true" Striped="true">
+    <HeaderContent>
+        @if (ShowProjectColumn)
+        {
+            <MudTh>Project</MudTh>
+        }
+        <MudTh>Title</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Tags</MudTh>
+        <MudTh>Score</MudTh>
+        <MudTh>Created</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        @if (ShowProjectColumn)
+        {
+            <MudTd DataLabel="Project">
+                <MudLink Href="@($"/projects/{context.ProjectId}?tab=issues")">@context.ProjectName</MudLink>
+            </MudTd>
+        }
+        <MudTd DataLabel="Title">
+            <MudLink Href="@($"/projects/{context.ProjectId}/issues/{context.Id}")">
+                <span style="opacity: 0.5;">#@context.Id</span> @context.Title
+            </MudLink>
+        </MudTd>
+        <MudTd DataLabel="Status">
+            <StatusChip Status="context.Status"/>
+        </MudTd>
+        <MudTd DataLabel="Tags">
+            @foreach (var tag in context.Tags)
+            {
+                <TagChip Name="@tag.Name" Color="@tag.Color"/>
+            }
+        </MudTd>
+        <MudTd DataLabel="Score">
+            <MudIcon Icon="@Icons.Material.Filled.ThumbUp" Size="Size.Small" Class="mr-1"/>
+            @context.VoteScore
+        </MudTd>
+        <MudTd DataLabel="Created">@context.CreatedAt.ToString("MMM dd, yyyy")</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    [Parameter] public List<IssueDto> Issues { get; set; } = [];
+    [Parameter] public bool ShowProjectColumn { get; set; }
+}

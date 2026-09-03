@@ -1,0 +1,24 @@
+@using Workbench.Modules.Issues.Enums
+
+<MudChip T="string" Size="Size" Color="@GetColor()">@GetLabel()</MudChip>
+
+@code {
+    [Parameter] public Status Status { get; set; }
+    [Parameter] public Size Size { get; set; } = Size.Small;
+
+    private Color GetColor() => Status switch
+    {
+        Status.Open => Color.Success,
+        Status.InProgress => Color.Warning,
+        Status.Closed => Color.Default,
+        _ => Color.Default
+    };
+
+    private string GetLabel() => Status switch
+    {
+        Status.Open => "Open",
+        Status.InProgress => "In Progress",
+        Status.Closed => "Closed",
+        _ => "Unknown"
+    };
+}

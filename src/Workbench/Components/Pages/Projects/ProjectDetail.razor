@@ -1,5 +1,6 @@
 @page "/projects/{ProjectId:int}"
 @using Workbench.ClientServices
+@using Workbench.Components.Shared
 @using Workbench.Components.Shared.Components
 @using Workbench.Modules.Projects.Dtos
 @using Workbench.Modules.Projects.Dtos.Requests
@@ -29,22 +30,21 @@
     }
     else
     {
-        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/projects"/>
-            <MudText Typo="Typo.h4">@_project.Name</MudText>
-            <MudSpacer/>
-            @if (ProjectMembership.IsOwner)
-            {
-                <MudTooltip Text="Edit project">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Inherit"
-                                   OnClick="OpenEditDialog"/>
-                </MudTooltip>
-                <MudTooltip Text="Delete project">
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                                   OnClick="() => _deleteDialogVisible = true"/>
-                </MudTooltip>
-            }
-        </MudStack>
+        <PageHeader Title="@_project.Name" BackHref="/projects">
+            <RightContent>
+                @if (ProjectMembership.IsOwner)
+                {
+                    <MudTooltip Text="Edit project">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Inherit"
+                                       OnClick="OpenEditDialog"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Delete project">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                       OnClick="() => _deleteDialogVisible = true"/>
+                    </MudTooltip>
+                }
+            </RightContent>
+        </PageHeader>
 
         <MudTabs @bind-ActivePanelIndex="_activeTab" ApplyEffectsToContainer="true" Class="mt-2">
             <MudTabPanel Text="Overview" Icon="@Icons.Material.Filled.Info">
@@ -134,7 +134,7 @@
     private string _editName = "";
     private string? _editDescription;
 
-    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+    private readonly DialogOptions _dialogOptions = AppDialogOptions.Small;
 
     protected override async Task OnInitializedAsync()
     {

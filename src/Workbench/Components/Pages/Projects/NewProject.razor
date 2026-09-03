@@ -1,4 +1,5 @@
 @page "/projects/new"
+@using Workbench.Components.Shared.Components
 @using Workbench.Modules.Projects.Dtos.Requests
 @using Workbench.Modules.Projects.Services
 @rendermode InteractiveServer
@@ -9,10 +10,7 @@
 <PageTitle>New Project - Workbench</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/projects"/>
-        <MudText Typo="Typo.h4">Create Project</MudText>
-    </MudStack>
+    <PageHeader Title="Create Project" BackHref="/projects"/>
 
     <MudPaper Class="pa-6">
         <MudTextField @bind-Value="_name" Label="Name" Required="true" MaxLength="100"

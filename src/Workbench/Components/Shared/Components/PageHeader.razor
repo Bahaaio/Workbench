@@ -1,0 +1,15 @@
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@BackHref"/>
+    <MudText Typo="Typo.h4">@Title</MudText>
+    @if (RightContent is not null)
+    {
+        <MudSpacer/>
+        @RightContent
+    }
+</MudStack>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string BackHref { get; set; } = "/";
+    [Parameter] public RenderFragment? RightContent { get; set; }
+}

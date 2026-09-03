@@ -29,19 +29,17 @@
     }
     else
     {
-        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
-                           Href="@($"/projects/{ProjectId}?tab=milestones")"/>
-            <MudText Typo="Typo.h4">@_milestone.Name</MudText>
-            <MudSpacer/>
-            @if (_milestone.TotalItems > 0)
-            {
-                var percent = (int)((double)_milestone.CompletedItems / _milestone.TotalItems * 100);
-                <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined">
-                    @_milestone.CompletedItems/@_milestone.TotalItems completed (@percent%)
-                </MudChip>
-            }
-        </MudStack>
+        <PageHeader Title="@_milestone.Name" BackHref="@($"/projects/{ProjectId}?tab=milestones")">
+            <RightContent>
+                @if (_milestone.TotalItems > 0)
+                {
+                    var percent = (int)((double)_milestone.CompletedItems / _milestone.TotalItems * 100);
+                    <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined">
+                        @_milestone.CompletedItems/@_milestone.TotalItems completed (@percent%)
+                    </MudChip>
+                }
+            </RightContent>
+        </PageHeader>
 
         @if (!string.IsNullOrEmpty(_milestone.Description))
         {
@@ -74,10 +72,7 @@
 
         @if (_issues.Count == 0)
         {
-            <MudPaper Class="pa-8 text-center">
-                <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Large" Color="Color.Default"/>
-                <MudText Typo="Typo.h6" Class="mt-2">No issues in this milestone</MudText>
-            </MudPaper>
+            <EmptyState Title="No issues in this milestone"/>
         }
         else
         {
@@ -99,18 +94,7 @@
                         </MudLink>
                     </MudTd>
                     <MudTd DataLabel="Status">
-                        @if (context.Status == Status.Open)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Success">Open</MudChip>
-                        }
-                        else if (context.Status == Status.InProgress)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Warning">In Progress</MudChip>
-                        }
-                        else
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default">Closed</MudChip>
-                        }
+                        <StatusChip Status="context.Status"/>
                     </MudTd>
                     <MudTd DataLabel="Tags">
                         @foreach (var tag in context.Tags)

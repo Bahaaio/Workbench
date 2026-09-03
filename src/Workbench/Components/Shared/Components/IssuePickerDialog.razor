@@ -70,7 +70,10 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="OnCancel">Cancel</MudButton>
+        @if (!_creating)
+        {
+            <MudButton OnClick="OnCancel">Cancel</MudButton>
+        }
     </DialogActions>
 </MudDialog>
 

@@ -1,0 +1,8 @@
+<MudAvatar Size="Size" Color="Color.Primary">
+    @(Username[..1].ToUpper())
+</MudAvatar>
+
+@code {
+    [Parameter] public string Username { get; set; } = string.Empty;
+    [Parameter] public Size Size { get; set; } = Size.Small;
+}

@@ -1,3 +1,4 @@
+@using Workbench.Components.Shared
 @using Workbench.Modules.Projects.Invites.Dtos
 @using Workbench.Modules.Projects.Invites.Dtos.Requests
 @using Workbench.Modules.Projects.Invites.Services
@@ -91,7 +92,7 @@
     [Parameter] public bool Visible { get; set; }
     [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
 
-    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+    private readonly DialogOptions _dialogOptions = AppDialogOptions.Small;
 
     private bool _generating;
     private int _inviteTab;

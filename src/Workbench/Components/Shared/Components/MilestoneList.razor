@@ -1,3 +1,5 @@
+@using Workbench.Components.Shared
+@using Workbench.Components.Shared.Components
 @using Workbench.Modules.Milestones.Dtos
 @using Workbench.Modules.Milestones.Dtos.Requests
 @using Workbench.Modules.Milestones.Services
@@ -23,13 +25,8 @@
     }
     else if (_milestones.Count == 0)
     {
-        <MudPaper Class="pa-8 text-center">
-            <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Large" Color="Color.Default"/>
-            <MudText Typo="Typo.h6" Class="mt-2">No milestones yet</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-1">
-                Create a milestone to group related issues.
-            </MudText>
-        </MudPaper>
+        <EmptyState Icon="@Icons.Material.Filled.Flag" Title="No milestones yet"
+                    Description="Create a milestone to group related issues."/>
     }
     else
     {
@@ -184,7 +181,7 @@
     private bool _deletingMilestoneLoading;
     private bool _savingMilestone;
 
-    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+    private readonly DialogOptions _dialogOptions = AppDialogOptions.Small;
 
     protected override async Task OnInitializedAsync()
     {

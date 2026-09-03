@@ -1,0 +1,41 @@
+@using Workbench.Modules.Issues.Enums
+
+<MudStack Row="true" Class="mb-4" AlignItems="AlignItems.Center">
+    <MudTextField @bind-Value="SearchText" Placeholder="Search issues..."
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                  Style="max-width: 300px;" Immediate="true"
+                  DebounceInterval="300"/>
+
+    <MudSelect T="string" @bind-Value="SelectedStatus" Label="Status" Style="width: 150px;"
+               SelectedValuesChanged="_ => OnFilterChanged.InvokeAsync()">
+        <MudSelectItem Value="@("all")">All</MudSelectItem>
+        <MudSelectItem Value="@("Open")">Open</MudSelectItem>
+        @if (ShowInProgressOption)
+        {
+            <MudSelectItem Value="@("InProgress")">In Progress</MudSelectItem>
+        }
+        <MudSelectItem Value="@("Closed")">Closed</MudSelectItem>
+    </MudSelect>
+
+    <MudSelect T="string" @bind-Value="SortBy" Label="Sort by" Style="width: 180px;"
+               SelectedValuesChanged="_ => OnFilterChanged.InvokeAsync()">
+        <MudSelectItem Value="@("Latest")">Newest first</MudSelectItem>
+        <MudSelectItem Value="@("Oldest")">Oldest first</MudSelectItem>
+        <MudSelectItem Value="@("HighestScore")">Highest score</MudSelectItem>
+        <MudSelectItem Value="@("LowestScore")">Lowest score</MudSelectItem>
+    </MudSelect>
+
+    @RightContent
+</MudStack>
+
+@code {
+    [Parameter] public string SearchText { get; set; } = "";
+    [Parameter] public EventCallback<string> SearchTextChanged { get; set; }
+    [Parameter] public string SelectedStatus { get; set; } = "all";
+    [Parameter] public EventCallback<string> SelectedStatusChanged { get; set; }
+    [Parameter] public string SortBy { get; set; } = "Latest";
+    [Parameter] public EventCallback<string> SortByChanged { get; set; }
+    [Parameter] public bool ShowInProgressOption { get; set; }
+    [Parameter] public EventCallback OnFilterChanged { get; set; }
+    [Parameter] public RenderFragment? RightContent { get; set; }
+}

@@ -1,4 +1,6 @@
 @using Workbench.ClientServices
+@using Workbench.Components.Shared
+@using Workbench.Components.Shared.Components
 @using Workbench.Modules.Projects.Dtos
 @using Workbench.Modules.Projects.Enums
 @using Workbench.Modules.Projects.Memberships.Dtos
@@ -16,9 +18,7 @@
     }
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-        <MudAvatar Size="Size.Small" Color="Color.Primary">
-            @(Project.OwnerUsername[..1].ToUpper())
-        </MudAvatar>
+        <UserAvatar Username="@Project.OwnerUsername"/>
         <MudText Typo="Typo.body2">
             Owned by <strong>@Project.OwnerUsername</strong>
         </MudText>
@@ -68,9 +68,7 @@
                 var isOwner = member.Username == Project.OwnerUsername;
                 <MudListItem Value="member">
                     <MudStack Row="true" AlignItems="AlignItems.Center">
-                        <MudAvatar Size="Size.Small" Color="Color.Primary">
-                            @(member.Username[..1].ToUpper())
-                        </MudAvatar>
+                        <UserAvatar Username="@member.Username"/>
                         <MudText Typo="Typo.body2">@member.Username</MudText>
                         <MudSpacer/>
                         @if (IsLead && !isCurrentUser && !isOwner)
@@ -112,7 +110,7 @@
 
 <InviteDialog ProjectId="Project.Id" @bind-Visible="_inviteDialogVisible"/>
 
-<MudDialog @bind-Visible="_promoteDialogVisible" Options="_dialogOptions">
+<MudDialog @bind-Visible="_promoteDialogVisible" Options="AppDialogOptions.Small">
     <TitleContent>
         <MudText Typo="Typo.h6">Promote to Lead</MudText>
     </TitleContent>
@@ -125,7 +123,7 @@
     </DialogActions>
 </MudDialog>
 
-<MudDialog @bind-Visible="_demoteDialogVisible" Options="_dialogOptions">
+<MudDialog @bind-Visible="_demoteDialogVisible" Options="AppDialogOptions.Small">
     <TitleContent>
         <MudText Typo="Typo.h6">Demote to Member</MudText>
     </TitleContent>
@@ -138,7 +136,7 @@
     </DialogActions>
 </MudDialog>
 
-<MudDialog @bind-Visible="_removeDialogVisible" Options="_dialogOptions">
+<MudDialog @bind-Visible="_removeDialogVisible" Options="AppDialogOptions.Small">
     <TitleContent>
         <MudText Typo="Typo.h6">Remove Member</MudText>
     </TitleContent>
@@ -151,7 +149,7 @@
     </DialogActions>
 </MudDialog>
 
-<MudDialog @bind-Visible="_leaveDialogVisible" Options="_dialogOptions">
+<MudDialog @bind-Visible="_leaveDialogVisible" Options="AppDialogOptions.Small">
     <TitleContent>
         <MudText Typo="Typo.h6">Leave Project</MudText>
     </TitleContent>
@@ -169,7 +167,6 @@
     [Parameter] public List<ProjectMembershipDto> Members { get; set; } = new();
     [Parameter] public bool IsLead { get; set; }
 
-    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small };
     private bool _inviteDialogVisible;
     private ProjectMembershipDto? _targetMember;
 

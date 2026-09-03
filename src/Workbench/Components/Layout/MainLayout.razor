@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@using Workbench.Components.Shared.Components
 @inject NavigationManager Navigation
 @inject IAuthState AuthState
 
@@ -37,9 +38,10 @@ else
             <MudSpacer/>
 
             <MudText Typo="Typo.body2" Class="mr-2">@AuthState.Username</MudText>
-            <MudAvatar Size="Size.Small" Color="Color.Primary">
-                @(_usernameInitial)
-            </MudAvatar>
+            @if (!string.IsNullOrEmpty(AuthState.Username))
+            {
+                <UserAvatar Username="@AuthState.Username"/>
+            }
 
             <MudTooltip Text="Logout">
                 <form method="post" action="/api/auth/logout">
@@ -76,20 +78,11 @@ else
     private bool _drawerOpen = true;
     private bool _isDarkMode;
     private bool _initialized;
-    private string _usernameInitial = "";
 
     protected override void OnInitialized()
     {
         AuthState.Check();
         _initialized = true;
-        UpdateUsernameInitial();
-    }
-
-    private void UpdateUsernameInitial()
-    {
-        _usernameInitial = !string.IsNullOrEmpty(AuthState.Username)
-            ? AuthState.Username[..1].ToUpper()
-            : "?";
     }
 
     private void ToggleDrawer()

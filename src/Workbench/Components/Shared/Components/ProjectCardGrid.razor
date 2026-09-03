@@ -1,0 +1,47 @@
+@using Workbench.Modules.Projects.Dtos
+
+@if (Loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="d-flex justify-center ma-8"/>
+}
+else if (Projects.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.FolderOpen" Title="@EmptyTitle" Description="@EmptyDescription"/>
+}
+else
+{
+    <MudGrid>
+        @foreach (var project in Projects)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Class="cursor-pointer" @onclick="() => OnProjectClick.InvokeAsync(project.Id)">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">@project.Name</MudText>
+                        @if (!string.IsNullOrEmpty(project.Description))
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-1 text-clamp-2">
+                                @project.Description
+                            </MudText>
+                        }
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-3">
+                            <UserAvatar Username="@project.OwnerUsername"/>
+                            <MudText Typo="Typo.caption">@project.OwnerUsername</MudText>
+                            <MudSpacer/>
+                            <MudText Typo="Typo.caption" Color="Color.Default">
+                                @project.CreatedAt.ToString("MMM dd, yyyy")
+                            </MudText>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public List<ProjectDto> Projects { get; set; } = [];
+    [Parameter] public bool Loading { get; set; } = true;
+    [Parameter] public string EmptyTitle { get; set; } = "No projects yet";
+    [Parameter] public string? EmptyDescription { get; set; }
+    [Parameter] public EventCallback<int> OnProjectClick { get; set; }
+}

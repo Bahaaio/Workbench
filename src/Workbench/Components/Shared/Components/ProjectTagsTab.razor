@@ -1,6 +1,8 @@
 @rendermode InteractiveServer
 @inject ITagsService TagsService
 @inject ISnackbar Snackbar
+@using Workbench.Components.Shared
+@using Workbench.Components.Shared.Components
 @using Workbench.Modules.Tags.Dtos
 @using Workbench.Modules.Tags.Dtos.Requests
 @using Workbench.Modules.Tags.Services
@@ -21,10 +23,7 @@
     }
     else if (_tags.Count == 0)
     {
-        <MudPaper Class="pa-8 text-center">
-            <MudIcon Icon="@Icons.Material.Filled.LabelOff" Size="Size.Large"/>
-            <MudText Typo="Typo.h6" Class="mt-2">No tags yet</MudText>
-        </MudPaper>
+        <EmptyState Icon="@Icons.Material.Filled.LabelOff" Title="No tags yet"/>
     }
     else
     {
@@ -114,7 +113,7 @@
     private bool _tagsLoading;
     private bool _savingTag;
     private bool _deletingTagLoading;
-    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+    private readonly DialogOptions _dialogOptions = AppDialogOptions.Small;
 
     // Create
     private bool _createDialogVisible;

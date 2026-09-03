@@ -11,31 +11,10 @@
 <PageTitle>My Issues - Workbench</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-        <MudText Typo="Typo.h4">My Issues</MudText>
-    </MudStack>
+    <MudText Typo="Typo.h4" Class="mb-4">My Issues</MudText>
 
-    <MudStack Row="true" Class="mb-4" AlignItems="AlignItems.Center">
-        <MudTextField @bind-Value="_searchText" Placeholder="Search issues..."
-                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                      Style="max-width: 300px;" Immediate="true"
-                      DebounceInterval="300"/>
-
-        <MudSelect T="string" @bind-Value="_selectedStatus" Label="Status" Style="width: 150px;"
-                   SelectedValuesChanged="_ => LoadIssues()">
-            <MudSelectItem Value="@("all")">All</MudSelectItem>
-            <MudSelectItem Value="@("Open")">Open</MudSelectItem>
-            <MudSelectItem Value="@("Closed")">Closed</MudSelectItem>
-        </MudSelect>
-
-        <MudSelect T="string" @bind-Value="_sortBy" Label="Sort by" Style="width: 180px;"
-                   SelectedValuesChanged="_ => LoadIssues()">
-            <MudSelectItem Value="@("Latest")">Newest first</MudSelectItem>
-            <MudSelectItem Value="@("Oldest")">Oldest first</MudSelectItem>
-            <MudSelectItem Value="@("HighestScore")">Highest score</MudSelectItem>
-            <MudSelectItem Value="@("LowestScore")">Lowest score</MudSelectItem>
-        </MudSelect>
-    </MudStack>
+    <IssueFilterBar @bind-SearchText="_searchText" @bind-SelectedStatus="_selectedStatus"
+                    @bind-SortBy="_sortBy" OnFilterChanged="LoadIssues"/>
 
     @if (_loading)
     {
@@ -43,58 +22,11 @@
     }
     else if (_issues.Count == 0)
     {
-        <MudPaper Class="pa-8 text-center">
-            <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Large" Color="Color.Default"/>
-            <MudText Typo="Typo.h6" Class="mt-2">No issues found</MudText>
-        </MudPaper>
+        <EmptyState Title="No issues found"/>
     }
     else
     {
-        <MudTable Items="_issues" Hover="true" Dense="true" Striped="true">
-            <HeaderContent>
-                <MudTh>Project</MudTh>
-                <MudTh>Title</MudTh>
-                <MudTh>Status</MudTh>
-                <MudTh>Tags</MudTh>
-                <MudTh>Score</MudTh>
-                <MudTh>Created</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Project">
-                    <MudLink Href="@($"/projects/{context.ProjectId}?tab=issues")">@context.ProjectName</MudLink>
-                </MudTd>
-                <MudTd DataLabel="Title">
-                    <MudLink Href="@($"/projects/{context.ProjectId}/issues/{context.Id}")">
-                        <span style="opacity: 0.5;">#@context.Id</span> @context.Title
-                    </MudLink>
-                </MudTd>
-                <MudTd DataLabel="Status">
-                    @if (context.Status == Status.Open)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Open</MudChip>
-                    }
-                    else if (context.Status == Status.InProgress)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">In Progress</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Default">Closed</MudChip>
-                    }
-                </MudTd>
-                <MudTd DataLabel="Tags">
-                    @foreach (var tag in context.Tags)
-                    {
-                        <TagChip Name="@tag.Name" Color="@tag.Color"/>
-                    }
-                </MudTd>
-                <MudTd DataLabel="Score">
-                    <MudIcon Icon="@Icons.Material.Filled.ThumbUp" Size="Size.Small" Class="mr-1"/>
-                    @context.VoteScore
-                </MudTd>
-                <MudTd DataLabel="Created">@context.CreatedAt.ToString("MMM dd, yyyy")</MudTd>
-            </RowTemplate>
-        </MudTable>
+        <IssueTable Issues="_issues" ShowProjectColumn="true"/>
     }
 </MudContainer>
 
