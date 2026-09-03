@@ -116,25 +116,15 @@ Table Attachment {
   ContentType varchar(128)
   OriginalFileName varchar(255)
   CreatedAt datetime
+  Discriminator varchar // 'IssueAttachment' | 'CommentAttachment'
+  IssueId int [note: 'nullable, set for issue attachments']
+  CommentId int [note: 'nullable, set for comment attachments']
 
   UploaderId int [ref: > User.Id]
-}
-
-Table IssueAttachment {
-  IssueId int [ref: > Issue.Id]
-  AttachmentId UUID [ref: > Attachment.Id, unique]
 
   indexes {
-    (IssueId, AttachmentId) [pk]
-  }
-}
-
-Table CommentAttachment {
-  CommentId int [ref: > Comment.Id]
-  AttachmentId UUID [ref: > Attachment.Id, unique]
-
-  indexes {
-    (CommentId, AttachmentId) [pk]
+    IssueId
+    CommentId
   }
 }
 
