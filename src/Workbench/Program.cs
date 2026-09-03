@@ -1,3 +1,4 @@
+using ApexCharts;
 using Workbench.Common.Exceptions;
 using Workbench.Components;
 using Workbench.Extensions;
@@ -13,6 +14,7 @@ builder.Services.AddExceptionHandling();
 
 // UI services
 builder.Services.AddUiServices();
+builder.Services.AddApexCharts();
 
 var app = builder.Build();
 

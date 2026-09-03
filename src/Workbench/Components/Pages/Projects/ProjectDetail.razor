@@ -69,6 +69,10 @@
                     <ProjectTagsTab ProjectId="ProjectId"/>
                 </MudTabPanel>
             }
+
+            <MudTabPanel Text="Stats" Icon="@Icons.Material.Filled.BarChart">
+                <ProjectStatsTab ProjectId="ProjectId"/>
+            </MudTabPanel>
         </MudTabs>
     }
 </MudContainer>
@@ -166,6 +170,7 @@
             "milestones" => 2,
             "issues" => 3,
             "tags" => ProjectMembership.IsMember ? 4 : 3,
+            "stats" => ProjectMembership.IsMember ? 5 : 4,
             _ => 0
         };
         _initialTabSet = true;
@@ -181,6 +186,7 @@
             2 => "milestones",
             3 => "issues",
             4 => "tags",
+            5 => "stats",
             _ => "overview"
         };
         Navigation.NavigateTo($"/projects/{ProjectId}?tab={tab}", replace: true);

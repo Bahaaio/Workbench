@@ -10,6 +10,7 @@ using Workbench.Modules.Issues;
 using Workbench.Modules.Kanban;
 using Workbench.Modules.Milestones;
 using Workbench.Modules.Projects;
+using Workbench.Modules.Stats;
 using Workbench.Modules.Storage;
 using Workbench.Modules.Tags;
 using Workbench.Modules.Users;
@@ -43,6 +44,7 @@ public static class ServiceExtensions
             services.AddProjectsModule();
             services.AddMilestonesModule();
             services.AddKanbanModule();
+            services.AddStatsModule();
         }
     }
 }

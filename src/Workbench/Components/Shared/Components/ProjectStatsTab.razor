@@ -1,0 +1,294 @@
+@using ApexCharts
+@using Workbench.Modules.Issues.Enums
+@using Workbench.Modules.Stats.Dtos
+@using Workbench.Modules.Stats.Services
+@rendermode InteractiveServer
+@inject IProjectStatsService StatsService
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Class="d-flex justify-center ma-8"/>
+}
+else if (_stats is null)
+{
+    <MudPaper Class="pa-8 text-center">
+        <MudText Typo="Typo.h6">Failed to load stats</MudText>
+    </MudPaper>
+}
+else
+{
+    <MudGrid Class="mt-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">Total Issues</MudText>
+                <MudText Typo="Typo.h4">@_stats.Summary.TotalIssues</MudText>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Success">Open</MudText>
+                <MudText Typo="Typo.h4">@_stats.Summary.OpenIssues</MudText>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Warning">In Progress</MudText>
+                <MudText Typo="Typo.h4">@_stats.Summary.InProgressIssues</MudText>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Default">Closed</MudText>
+                <MudText Typo="Typo.h4">@_stats.Summary.ClosedIssues</MudText>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mt-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">Total Milestones</MudText>
+                <MudText Typo="Typo.h4">@_stats.Summary.TotalMilestones</MudText>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Success">Completed</MudText>
+                <MudText Typo="Typo.h4">@_stats.Summary.CompletedMilestones</MudText>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">Overdue</MudText>
+                <MudText Typo="Typo.h4">@_stats.Summary.OverdueMilestones</MudText>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">Members</MudText>
+                <MudText Typo="Typo.h4">@_stats.Summary.TotalMembers</MudText>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mt-6">
+        <MudItem xs="12" md="6">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4">Issue Status</MudText>
+                <ApexChart TItem="StatusBreakdownDto"
+                           Options="_donutOptions"
+                           Height="300">
+                    <ApexPointSeries TItem="StatusBreakdownDto"
+                                     Items="_stats.IssueStatusBreakdown"
+                                     SeriesType="SeriesType.Donut"
+                                     Name="Issues"
+                                     XValue="@(x => x.Status.ToString())"
+                                     YValue="@(x => x.Count)"/>
+                </ApexChart>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4">Issues Created (Last 30 Days)</MudText>
+                <ApexChart TItem="DailyCountDto"
+                           Options="_lineOptions"
+                           Height="300">
+                    <ApexPointSeries TItem="DailyCountDto"
+                                     Items="_stats.IssueCreationTrend"
+                                     SeriesType="SeriesType.Line"
+                                     Name="Issues"
+                                     XValue="@(x => x.Date.ToString("MMM dd"))"
+                                     YValue="@(x => x.Count)"
+                                     Color="#1E88E5"/>
+                </ApexChart>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mt-6">
+        <MudItem xs="12" md="6">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4">Issues Per Member</MudText>
+                @if (_stats.IssuesPerMember.Any())
+                {
+                    <ApexChart TItem="MemberCountDto"
+                               Options="_horizontalBarOptions"
+                               Height="@(Math.Max(200, _stats.IssuesPerMember.Count * 40 + 50))">
+                        <ApexPointSeries TItem="MemberCountDto"
+                                         Items="_stats.IssuesPerMember"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Issues"
+                                         XValue="@(x => x.Username)"
+                                         YValue="@(x => x.Count)"
+                                         Color="#43A047"/>
+                    </ApexChart>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">No assigned issues</MudText>
+                }
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudCard Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4">Issues Per Tag</MudText>
+                @if (_stats.IssuesPerTag.Any())
+                {
+                    <ApexChart TItem="TagCountDto"
+                               Options="_tagBarOptions"
+                               Height="@(Math.Max(200, _stats.IssuesPerTag.Count * 40 + 50))">
+                        <ApexPointSeries TItem="TagCountDto"
+                                         Items="_stats.IssuesPerTag"
+                                         SeriesType="SeriesType.Bar"
+                                         Name="Issues"
+                                         XValue="@(x => x.Name)"
+                                         YValue="@(x => x.Count)"
+                                         Color="#8E24AA"/>
+                    </ApexChart>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">No tags with issues</MudText>
+                }
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    @if (_stats.MilestoneProgress.Any())
+    {
+        <MudCard Class="pa-4 mt-6">
+            <MudText Typo="Typo.h6" Class="mb-4">Milestone Progress</MudText>
+            <MudStack Spacing="3">
+                @foreach (var milestone in _stats.MilestoneProgress)
+                {
+                    <MudStack>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body2">@milestone.Name</MudText>
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                @milestone.CompletedItems / @milestone.TotalItems
+                                @if (milestone.DueDate.HasValue)
+                                {
+                                    <span> · Due @milestone.DueDate.Value.ToString("MMM dd")</span>
+                                }
+                            </MudText>
+                        </MudStack>
+                        <MudProgressLinear Value="@((double)milestone.CompletedItems / Math.Max(1, milestone.TotalItems) * 100)"
+                                           Color="@(milestone.CompletedItems == milestone.TotalItems ? MudBlazor.Color.Success : MudBlazor.Color.Primary)"
+                                           Size="MudBlazor.Size.Medium"/>
+                    </MudStack>
+                }
+            </MudStack>
+        </MudCard>
+    }
+}
+
+@code {
+    [Parameter] public int ProjectId { get; set; }
+
+    private ProjectStatsDto? _stats;
+    private bool _loading = true;
+
+    private ApexChartOptions<StatusBreakdownDto> _donutOptions = new();
+    private ApexChartOptions<DailyCountDto> _lineOptions = new();
+    private ApexChartOptions<MemberCountDto> _horizontalBarOptions = new();
+    private ApexChartOptions<TagCountDto> _tagBarOptions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _stats = await StatsService.GetProjectStatsAsync(ProjectId);
+        }
+        catch
+        {
+            _stats = null;
+        }
+
+        _loading = false;
+    }
+
+    protected override void OnInitialized()
+    {
+        _donutOptions = new ApexChartOptions<StatusBreakdownDto>
+        {
+            PlotOptions = new PlotOptions
+            {
+                Pie = new PlotOptionsPie
+                {
+                    Donut = new PlotOptionsDonut
+                    {
+                        Size = "70%"
+                    }
+                }
+            },
+            Legend = new Legend
+            {
+                Position = LegendPosition.Bottom
+            },
+            Colors = [ "#43A047", "#FB8C00", "#78909C" ]
+        };
+
+        _lineOptions = new ApexChartOptions<DailyCountDto>
+        {
+            Stroke = new Stroke
+            {
+                Curve = Curve.Smooth
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels
+                {
+                    RotateAlways = true,
+                    Style = new AxisLabelStyle
+                    {
+                        FontSize = "10px"
+                    }
+                }
+            }
+        };
+
+        _horizontalBarOptions = new ApexChartOptions<MemberCountDto>
+        {
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar
+                {
+                    Horizontal = true
+                }
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels
+                {
+                    Style = new AxisLabelStyle
+                    {
+                        FontSize = "12px"
+                    }
+                }
+            }
+        };
+
+        _tagBarOptions = new ApexChartOptions<TagCountDto>
+        {
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar
+                {
+                    Horizontal = true
+                }
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels
+                {
+                    Style = new AxisLabelStyle
+                    {
+                        FontSize = "12px"
+                    }
+                }
+            }
+        };
+    }
+}
