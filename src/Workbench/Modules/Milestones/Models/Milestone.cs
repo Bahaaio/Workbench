@@ -15,4 +15,5 @@ public class Milestone : IEntity<int>, IBelongsToProject
     public Project Project { get; set; } = null!;
 
     public ICollection<MilestoneItem> MilestoneItems { get; set; } = [];
+    public ICollection<MilestoneAttachment> Attachments { get; set; } = [];
 }

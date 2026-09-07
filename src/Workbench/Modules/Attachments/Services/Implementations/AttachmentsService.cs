@@ -24,7 +24,7 @@ namespace Workbench.Modules.Attachments.Services.Implementations;
 /// <typeparam name="TParent">The parent resource that owns attachments.</typeparam>
 /// <typeparam name="TAttachment">The attachment type.</typeparam>
 public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsService<TParent>
-    where TParent : class, IOwnedByUser, IEntity<int>
+    where TParent : class, IEntity<int>
     where TAttachment : Attachment, IHasParent<TParent>, new()
 {
     private readonly IAttachmentValidationService _attachmentValidationService;

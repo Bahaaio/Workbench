@@ -16,6 +16,7 @@ public static class UiExtensions
             services.AddScoped<IProjectMembershipState, ProjectMembershipState>();
             services.AddScoped<IIssueAttachmentsClient, IssueAttachmentsClient>();
             services.AddScoped<ICommentAttachmentsClient, CommentAttachmentsClient>();
+            services.AddScoped<IMilestoneAttachmentsClient, MilestoneAttachmentsClient>();
         }
     }
 }
