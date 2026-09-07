@@ -9,4 +9,5 @@ public interface ICommentsRepository
     Comment Add(Comment entity);
     void Remove(Comment entity);
     Task<List<CommentDto>> GetAllByIssueIdAsync(int issueId);
+    Task SaveChangesAsync();
 }

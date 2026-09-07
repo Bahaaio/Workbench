@@ -1,5 +1,4 @@
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
@@ -20,17 +19,15 @@ public class ProjectInvitesService : IProjectInvitesService
     private readonly IProjectInvitesRepository _projectInvitesRepository;
     private readonly IProjectsRepository _projectsRepository;
     private readonly ITokensService _tokensService;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _user;
 
     public ProjectInvitesService(IProjectInvitesRepository projectInvitesRepository,
         ITokensService tokensService,
-        IUnitOfWork unitOfWork, ICurrentUser user, IProjectsRepository projectsRepository,
+        ICurrentUser user, IProjectsRepository projectsRepository,
         IAuthorizationGuard authGuard, IProjectMembershipsService membershipsService)
     {
         _projectInvitesRepository = projectInvitesRepository;
         _tokensService = tokensService;
-        _unitOfWork = unitOfWork;
         _user = user;
         _projectsRepository = projectsRepository;
         _authGuard = authGuard;
@@ -51,7 +48,7 @@ public class ProjectInvitesService : IProjectInvitesService
         };
 
         _projectInvitesRepository.Add(invite);
-        await _unitOfWork.SaveChangesAsync();
+        await _projectInvitesRepository.SaveChangesAsync();
 
         return new InviteDto(invite.Code, invite.ExpiresAt);
     }
@@ -75,7 +72,7 @@ public class ProjectInvitesService : IProjectInvitesService
             throw new ConflictException("You are already a member of this project");
 
         _projectInvitesRepository.Remove(invite);
-        await _unitOfWork.SaveChangesAsync();
+        await _projectInvitesRepository.SaveChangesAsync();
 
         await _membershipsService.AddMember(invite.ProjectId, _user.Id, ProjectMemberRole.Member);
     }
@@ -86,6 +83,6 @@ public class ProjectInvitesService : IProjectInvitesService
         await _authGuard.AuthorizeProjectLead(invite);
 
         _projectInvitesRepository.Remove(invite);
-        await _unitOfWork.SaveChangesAsync();
+        await _projectInvitesRepository.SaveChangesAsync();
     }
 }

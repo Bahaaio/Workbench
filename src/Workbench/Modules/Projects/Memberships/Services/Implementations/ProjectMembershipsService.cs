@@ -1,5 +1,4 @@
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
@@ -20,15 +19,13 @@ public class ProjectMembershipsService : IProjectMembershipsService
     private readonly IIssuesRepository _issuesRepository;
     private readonly IProjectMembershipsRepository _projectMembershipsRepository;
     private readonly IProjectsRepository _projectsRepository;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _user;
 
     public ProjectMembershipsService(IProjectMembershipsRepository projectMembershipsRepository,
-        IUnitOfWork unitOfWork, ICurrentUser user, IProjectsRepository projectsRepository,
+        ICurrentUser user, IProjectsRepository projectsRepository,
         IAuthorizationGuard authGuard, IIssuesRepository issuesRepository)
     {
         _projectMembershipsRepository = projectMembershipsRepository;
-        _unitOfWork = unitOfWork;
         _user = user;
         _projectsRepository = projectsRepository;
         _authGuard = authGuard;
@@ -60,7 +57,7 @@ public class ProjectMembershipsService : IProjectMembershipsService
             Role = role
         });
 
-        await _unitOfWork.SaveChangesAsync();
+        await _projectMembershipsRepository.SaveChangesAsync();
     }
 
     public async Task UpdateRole(int projectId, string username, ProjectMemberRole role)
@@ -78,7 +75,7 @@ public class ProjectMembershipsService : IProjectMembershipsService
             throw new BadRequestException("Cannot change the owner's role");
 
         membership.Role = role;
-        await _unitOfWork.SaveChangesAsync();
+        await _projectMembershipsRepository.SaveChangesAsync();
     }
 
     public async Task RemoveMember(int projectId, string username)
@@ -122,6 +119,6 @@ public class ProjectMembershipsService : IProjectMembershipsService
         await _issuesRepository.UnassignFromAllAsync(project.Id, membership.UserId);
         _projectMembershipsRepository.Remove(membership);
 
-        await _unitOfWork.SaveChangesAsync();
+        await _projectMembershipsRepository.SaveChangesAsync();
     }
 }

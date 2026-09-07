@@ -9,10 +9,12 @@ namespace Workbench.Modules.Tags.Repositories.Implementations;
 
 public class TagsRepository : ITagsRepository
 {
+    private readonly AppDbContext _dbContext;
     private readonly DbSet<Tag> _dbSet;
 
     public TagsRepository(AppDbContext context)
     {
+        _dbContext = context;
         _dbSet = context.Set<Tag>();
     }
 
@@ -49,4 +51,6 @@ public class TagsRepository : ITagsRepository
             .Where(t => t.ProjectId == projectId)
             .Where(t => EF.Functions.ILike(t.Name, name))
             .ExecuteDeleteAsync();
+
+    public Task SaveChangesAsync() => _dbContext.SaveChangesAsync();
 }

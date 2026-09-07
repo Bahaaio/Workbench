@@ -1,4 +1,3 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
@@ -15,16 +14,14 @@ public class IssueStatusService : IIssueStatusService
     private readonly IIssuesRepository _issuesRepository;
     private readonly ILogger<IssueStatusService> _logger;
     private readonly IIssueStatusChangeRepository _statusChangeRepository;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _user;
 
     public IssueStatusService(IIssuesRepository issuesRepository,
-        IIssueStatusChangeRepository statusChangeRepository, IUnitOfWork unitOfWork,
+        IIssueStatusChangeRepository statusChangeRepository,
         ICurrentUser user, IAuthorizationGuard authGuard, ILogger<IssueStatusService> logger)
     {
         _issuesRepository = issuesRepository;
         _statusChangeRepository = statusChangeRepository;
-        _unitOfWork = unitOfWork;
         _user = user;
         _authGuard = authGuard;
         _logger = logger;
@@ -48,7 +45,7 @@ public class IssueStatusService : IIssueStatusService
 
         issue.Status = request.Status;
         _statusChangeRepository.Add(statusChange);
-        await _unitOfWork.SaveChangesAsync();
+        await _statusChangeRepository.SaveChangesAsync();
 
         _logger.LogInformation("User {userId} updated issue {issueId} status from {from} to {to}",
             _user.Id, issue.Id, statusChange.FromStatus, statusChange.ToStatus);

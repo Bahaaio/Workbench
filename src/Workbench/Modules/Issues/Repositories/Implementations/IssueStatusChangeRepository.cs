@@ -8,10 +8,12 @@ namespace Workbench.Modules.Issues.Repositories.Implementations;
 
 public class IssueStatusChangeRepository : IIssueStatusChangeRepository
 {
+    private readonly AppDbContext _dbContext;
     private readonly DbSet<IssueStatusChange> _dbSet;
 
     public IssueStatusChangeRepository(AppDbContext context)
     {
+        _dbContext = context;
         _dbSet = context.Set<IssueStatusChange>();
     }
 
@@ -24,4 +26,6 @@ public class IssueStatusChangeRepository : IIssueStatusChangeRepository
             .OrderBy(s => s.ChangedAt)
             .Select(StatusChangeMapper.ToDtoExpression)
             .ToListAsync();
+
+    public Task SaveChangesAsync() => _dbContext.SaveChangesAsync();
 }

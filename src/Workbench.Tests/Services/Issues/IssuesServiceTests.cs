@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Attachments.Services;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Services;
@@ -26,7 +25,6 @@ public class IssuesServiceTests
     private readonly Mock<IIssuesRepository> _issuesRepo;
     private readonly Mock<IProjectsRepository> _projectsRepo;
     private readonly Mock<IAttachmentsService<Issue>> _attachmentsService;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly IssuesService _service;
 
     public IssuesServiceTests()
@@ -38,11 +36,9 @@ public class IssuesServiceTests
         _issuesRepo = new Mock<IIssuesRepository>();
         _projectsRepo = new Mock<IProjectsRepository>();
         _attachmentsService = new Mock<IAttachmentsService<Issue>>();
-        _unitOfWork = new Mock<IUnitOfWork>();
 
         _service = new IssuesService(
             _issuesRepo.Object,
-            _unitOfWork.Object,
             userMock.Object,
             _authGuard.Object,
             Mock.Of<ILogger<IssuesService>>(),
@@ -101,7 +97,6 @@ public class IssuesServiceTests
         Assert.Equal(IssueId, result.Id);
         Assert.Equal("New Issue", result.Title);
         _issuesRepo.Verify(r => r.Add(It.Is<Issue>(i => i.AuthorId == CurrentUserId)), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -135,7 +130,6 @@ public class IssuesServiceTests
 
         Assert.Equal("Updated", result.Title);
         Assert.Equal("New", result.Description);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -150,7 +144,6 @@ public class IssuesServiceTests
         await Assert.ThrowsAsync<ForbiddenException>(
             () => _service.Update(ProjectId, IssueId, new UpdateIssueRequest { Title = "X" }));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -174,7 +167,6 @@ public class IssuesServiceTests
 
         _attachmentsService.Verify(s => s.DeleteAll(IssueId), Times.Once);
         _issuesRepo.Verify(r => r.Remove(issue), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]

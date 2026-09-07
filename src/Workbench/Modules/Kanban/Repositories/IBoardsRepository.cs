@@ -10,4 +10,5 @@ public interface IBoardsRepository
     void Remove(Board entity);
     Task<BoardDto> GetByProjectId(int projectId);
     Task<Board> GetByProjectIdRaw(int projectId);
+    Task SaveChangesAsync();
 }

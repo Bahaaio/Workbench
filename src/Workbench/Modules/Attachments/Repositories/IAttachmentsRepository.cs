@@ -31,4 +31,5 @@ public interface IAttachmentsRepository<TAttachment>
     ///     Returns the <c>ParentId</c> of the attachment with <paramref name="attachmentId" />.
     /// </summary>
     Task<int> GetParentIdByAttachmentAsync(Guid attachmentId);
+    Task SaveChangesAsync();
 }

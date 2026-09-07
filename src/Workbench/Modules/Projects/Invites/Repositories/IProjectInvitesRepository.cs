@@ -11,4 +11,5 @@ public interface IProjectInvitesRepository
     void Remove(ProjectInvite entity);
     Task ExistsOrThrowAsync(string code);
     Task<List<InviteDto>> GetActiveByProjectId(int projectId);
+    Task SaveChangesAsync();
 }

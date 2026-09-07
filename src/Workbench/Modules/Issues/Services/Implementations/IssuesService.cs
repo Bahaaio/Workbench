@@ -1,4 +1,3 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Attachments.Services;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
@@ -19,15 +18,13 @@ public class IssuesService : IIssuesService
     private readonly IIssuesRepository _issuesRepository;
     private readonly ILogger<IssuesService> _logger;
     private readonly IProjectsRepository _projectsRepository;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _user;
 
-    public IssuesService(IIssuesRepository issuesRepository, IUnitOfWork unitOfWork,
+    public IssuesService(IIssuesRepository issuesRepository,
         ICurrentUser user, IAuthorizationGuard authGuard, ILogger<IssuesService> logger,
         IAttachmentsService<Issue> attachmentsService, IProjectsRepository projectsRepository)
     {
         _issuesRepository = issuesRepository;
-        _unitOfWork = unitOfWork;
         _user = user;
         _authGuard = authGuard;
         _logger = logger;
@@ -64,7 +61,7 @@ public class IssuesService : IIssuesService
         };
 
         _issuesRepository.Add(issue);
-        await _unitOfWork.SaveChangesAsync();
+        await _issuesRepository.SaveChangesAsync();
 
         _logger.LogInformation("User {userId} created issue {issueId}", _user.Id, issue.Id);
 
@@ -82,7 +79,7 @@ public class IssuesService : IIssuesService
         issue.Title = request.Title;
         issue.Description = request.Description;
 
-        await _unitOfWork.SaveChangesAsync();
+        await _issuesRepository.SaveChangesAsync();
         return issue.ToDto();
     }
 
@@ -96,7 +93,7 @@ public class IssuesService : IIssuesService
         await _attachmentsService.DeleteAll(issueId);
         _issuesRepository.Remove(issue);
 
-        await _unitOfWork.SaveChangesAsync();
+        await _issuesRepository.SaveChangesAsync();
 
         _logger.LogInformation("User {userId} deleted issue {issueId}", _user.Id, issueId);
     }

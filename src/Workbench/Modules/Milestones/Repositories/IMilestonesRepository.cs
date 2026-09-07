@@ -25,4 +25,5 @@ public interface IMilestonesRepository
 
     /// <summary>Returns all issues in a milestone, projected to DTOs.</summary>
     Task<List<IssueDto>> GetAllIssuesAsync(int milestoneId);
+    Task SaveChangesAsync();
 }

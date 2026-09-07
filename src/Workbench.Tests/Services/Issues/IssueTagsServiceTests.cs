@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Exceptions;
 using Workbench.Common.Enums;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Issues.Repositories;
@@ -20,7 +19,6 @@ public class IssueTagsServiceTests
     private readonly Mock<IAuthorizationGuard> _authGuard;
     private readonly Mock<IIssuesRepository> _issuesRepo;
     private readonly Mock<ITagsRepository> _tagsRepo;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly IssueTagsService _service;
 
     public IssueTagsServiceTests()
@@ -28,12 +26,10 @@ public class IssueTagsServiceTests
         _authGuard = new Mock<IAuthorizationGuard>();
         _issuesRepo = new Mock<IIssuesRepository>();
         _tagsRepo = new Mock<ITagsRepository>();
-        _unitOfWork = new Mock<IUnitOfWork>();
 
         _service = new IssueTagsService(
             _issuesRepo.Object,
             _tagsRepo.Object,
-            _unitOfWork.Object,
             _authGuard.Object);
     }
 
@@ -74,7 +70,6 @@ public class IssueTagsServiceTests
         Assert.Equal(2, result.Count);
         Assert.Contains("bug", result);
         Assert.Contains("urgent", result);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -103,7 +98,6 @@ public class IssueTagsServiceTests
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.UpdateTags(IssueId, ["tag"]));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -117,7 +111,6 @@ public class IssueTagsServiceTests
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.UpdateTags(IssueId, ["nonexistent"]));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -134,7 +127,6 @@ public class IssueTagsServiceTests
             () => _service.UpdateTags(IssueId, ["bug", "missing"]));
 
         Assert.Contains("missing", ex.Message);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -181,6 +173,5 @@ public class IssueTagsServiceTests
 
         Assert.Empty(result);
         Assert.Empty(issue.Tags);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 }

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
@@ -26,7 +25,6 @@ public class BoardCardsServiceTests
     private readonly Mock<IBoardsRepository> _boardsRepo;
     private readonly Mock<IBoardCardsRepository> _cardsRepo;
     private readonly Mock<IProjectsRepository> _projectsRepo;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly BoardCardsService _service;
 
     public BoardCardsServiceTests()
@@ -35,13 +33,11 @@ public class BoardCardsServiceTests
         _boardsRepo = new Mock<IBoardsRepository>();
         _cardsRepo = new Mock<IBoardCardsRepository>();
         _projectsRepo = new Mock<IProjectsRepository>();
-        _unitOfWork = new Mock<IUnitOfWork>();
 
         _service = new BoardCardsService(
             _boardsRepo.Object,
             _cardsRepo.Object,
             _projectsRepo.Object,
-            _unitOfWork.Object,
             _authGuard.Object);
     }
 
@@ -123,7 +119,6 @@ public class BoardCardsServiceTests
         Assert.Equal(CardId, result.Id);
         Assert.Equal(1, result.Position);
         _cardsRepo.Verify(r => r.Add(It.IsAny<BoardCard>()), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -142,7 +137,6 @@ public class BoardCardsServiceTests
                 ColumnId = ColumnId
             }));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -195,7 +189,6 @@ public class BoardCardsServiceTests
         await _service.Delete(ProjectId, CardId);
 
         _cardsRepo.Verify(r => r.Remove(card), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -246,7 +239,6 @@ public class BoardCardsServiceTests
 
         Assert.Equal(21, card.ColumnId);
         Assert.Equal(1, card.Position);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Exactly(2));
     }
 
     [Fact]
@@ -297,7 +289,6 @@ public class BoardCardsServiceTests
         Assert.Equal(1, card3.Position);
         Assert.Equal(2, card1.Position);
         Assert.Equal(3, card2.Position);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Exactly(2));
     }
 
     [Fact]

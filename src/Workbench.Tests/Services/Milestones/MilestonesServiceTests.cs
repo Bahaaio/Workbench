@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Milestones.Dtos.Requests;
 using Workbench.Modules.Milestones.Models;
@@ -20,7 +19,6 @@ public class MilestonesServiceTests
     private readonly Mock<IAuthorizationGuard> _authGuard;
     private readonly Mock<IMilestonesRepository> _milestonesRepo;
     private readonly Mock<IProjectsRepository> _projectsRepo;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly MilestonesService _service;
 
     public MilestonesServiceTests()
@@ -28,12 +26,10 @@ public class MilestonesServiceTests
         _authGuard = new Mock<IAuthorizationGuard>();
         _milestonesRepo = new Mock<IMilestonesRepository>();
         _projectsRepo = new Mock<IProjectsRepository>();
-        _unitOfWork = new Mock<IUnitOfWork>();
 
         _service = new MilestonesService(
             _milestonesRepo.Object,
             _projectsRepo.Object,
-            _unitOfWork.Object,
             _authGuard.Object);
     }
 
@@ -124,7 +120,6 @@ public class MilestonesServiceTests
 
         Assert.Equal(MilestoneId, result.Id);
         _milestonesRepo.Verify(r => r.Add(It.IsAny<Milestone>()), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -163,7 +158,6 @@ public class MilestonesServiceTests
 
         Assert.Equal("Updated", result.Name);
         Assert.Equal("New", result.Description);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -175,7 +169,6 @@ public class MilestonesServiceTests
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.Update(ProjectId, MilestoneId, new UpdateMilestoneRequest { Name = "X" }));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -189,7 +182,6 @@ public class MilestonesServiceTests
         await Assert.ThrowsAsync<ForbiddenException>(
             () => _service.Update(ProjectId, MilestoneId, new UpdateMilestoneRequest { Name = "X" }));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -201,7 +193,6 @@ public class MilestonesServiceTests
         await _service.Delete(ProjectId, MilestoneId);
 
         _milestonesRepo.Verify(r => r.Remove(milestone), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]

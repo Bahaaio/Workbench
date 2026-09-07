@@ -10,4 +10,5 @@ public interface IBoardCardsRepository
     BoardCard Update(BoardCard entity);
     void Remove(BoardCard entity);
     Task LoadIssueAsync(BoardCard card);
+    Task SaveChangesAsync();
 }

@@ -9,10 +9,12 @@ namespace Workbench.Modules.Projects.Invites.Repositories.Implementations;
 
 public class ProjectInvitesRepository : IProjectInvitesRepository
 {
+    private readonly AppDbContext _dbContext;
     private readonly DbSet<ProjectInvite> _dbSet;
 
     public ProjectInvitesRepository(AppDbContext context)
     {
+        _dbContext = context;
         _dbSet = context.Set<ProjectInvite>();
     }
 
@@ -31,4 +33,6 @@ public class ProjectInvitesRepository : IProjectInvitesRepository
             .Where(i => i.ProjectId == projectId && i.ExpiresAt > DateTime.UtcNow)
             .Select(i => new InviteDto(i.Code, i.ExpiresAt))
             .ToListAsync();
+
+    public Task SaveChangesAsync() => _dbContext.SaveChangesAsync();
 }

@@ -46,4 +46,6 @@ public class ProjectsRepository : IProjectsRepository
 
     public Task LoadOwnerAsync(Project project) =>
         _context.Entry(project).Reference(p => p.Owner).LoadAsync();
+
+    public Task SaveChangesAsync() => _context.SaveChangesAsync();
 }

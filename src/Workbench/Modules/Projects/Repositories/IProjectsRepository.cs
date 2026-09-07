@@ -14,4 +14,5 @@ public interface IProjectsRepository
     Task<List<ProjectDto>> GetAllAsync();
     Task<List<ProjectDto>> GetAllByUserIdAsync(int userId);
     Task LoadOwnerAsync(Project project);
+    Task SaveChangesAsync();
 }

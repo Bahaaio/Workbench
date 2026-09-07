@@ -45,4 +45,5 @@ public interface IIssuesRepository
     ///     Unassigns <paramref name="userId" /> from all non-closed issues in <paramref name="projectId" />.
     /// </summary>
     Task UnassignFromAllAsync(int projectId, int userId);
+    Task SaveChangesAsync();
 }

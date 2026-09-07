@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Kanban.Services;
@@ -25,7 +24,6 @@ public class ProjectsServiceTests
     private readonly Mock<IBoardsService> _boardsService;
     private readonly Mock<IProjectMembershipsService> _membershipsService;
     private readonly Mock<IProjectsRepository> _projectsRepo;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly ProjectsService _service;
 
     public ProjectsServiceTests()
@@ -37,14 +35,12 @@ public class ProjectsServiceTests
         _boardsService = new Mock<IBoardsService>();
         _membershipsService = new Mock<IProjectMembershipsService>();
         _projectsRepo = new Mock<IProjectsRepository>();
-        _unitOfWork = new Mock<IUnitOfWork>();
 
         _service = new ProjectsService(
             _projectsRepo.Object,
             _membershipsService.Object,
             _boardsService.Object,
             userMock.Object,
-            _unitOfWork.Object,
             _authGuard.Object);
     }
 
@@ -103,7 +99,6 @@ public class ProjectsServiceTests
         Assert.Equal("New Project", result.Name);
         _membershipsService.Verify(s => s.AddMember(ProjectId, CurrentUserId, ProjectMemberRole.Lead), Times.Once);
         _boardsService.Verify(s => s.CreateEmpty(ProjectId), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -139,7 +134,6 @@ public class ProjectsServiceTests
 
         Assert.Equal("Updated", result.Name);
         Assert.Equal("New desc", result.Description);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -169,7 +163,6 @@ public class ProjectsServiceTests
         await Assert.ThrowsAsync<ForbiddenException>(
             () => _service.Update(ProjectId, new UpdateProjectRequest { Name = "X" }));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -181,7 +174,6 @@ public class ProjectsServiceTests
         await _service.Delete(ProjectId);
 
         _projectsRepo.Verify(r => r.Remove(project), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]

@@ -9,4 +9,5 @@ public interface IIssueStatusChangeRepository
 
     /// <summary>Returns the ordered status-change history for the given issue.</summary>
     Task<List<StatusChangeDto>> GetHistoryAsync(int issueId);
+    Task SaveChangesAsync();
 }

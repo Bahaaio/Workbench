@@ -1,5 +1,4 @@
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
@@ -17,15 +16,13 @@ public class IssueAssignmentsService : IIssueAssignmentsService
     private readonly IAuthorizationGuard _authGuard;
     private readonly IIssuesRepository _issuesRepository;
     private readonly IProjectMembershipsService _membershipsService;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _user;
 
-    public IssueAssignmentsService(IIssuesRepository issuesRepository, IUnitOfWork unitOfWork,
+    public IssueAssignmentsService(IIssuesRepository issuesRepository,
         ICurrentUser user, IAuthorizationGuard authGuard,
         IProjectMembershipsService membershipsService)
     {
         _issuesRepository = issuesRepository;
-        _unitOfWork = unitOfWork;
         _user = user;
         _authGuard = authGuard;
         _membershipsService = membershipsService;
@@ -42,7 +39,7 @@ public class IssueAssignmentsService : IIssueAssignmentsService
             throw new ConflictException("Issue is already assigned to a user");
 
         issue.AssignedToId = _user.Id;
-        await _unitOfWork.SaveChangesAsync();
+        await _issuesRepository.SaveChangesAsync();
     }
 
     public async Task UnassignCurrentUser(int issueId)
@@ -56,7 +53,7 @@ public class IssueAssignmentsService : IIssueAssignmentsService
             throw new ForbiddenException("Issue is not assigned to the current user");
 
         issue.AssignedToId = null;
-        await _unitOfWork.SaveChangesAsync();
+        await _issuesRepository.SaveChangesAsync();
     }
 
     public async Task AssignUser(int issueId, string userName)
@@ -69,7 +66,7 @@ public class IssueAssignmentsService : IIssueAssignmentsService
         var membership = await _membershipsService.GetProjectMembership(issue.ProjectId, userName);
         issue.AssignedToId = membership.UserId;
 
-        await _unitOfWork.SaveChangesAsync();
+        await _issuesRepository.SaveChangesAsync();
     }
 
     public async Task UnassignUser(int issueId)
@@ -80,7 +77,7 @@ public class IssueAssignmentsService : IIssueAssignmentsService
         ValidateClosedIssue(issue);
 
         issue.AssignedToId = null;
-        await _unitOfWork.SaveChangesAsync();
+        await _issuesRepository.SaveChangesAsync();
     }
 
     public Task<List<IssueDto>> GetCurrentUserAssignedIssues(IssueQuery issueQuery) =>

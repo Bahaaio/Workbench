@@ -1,6 +1,5 @@
 using Moq;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
@@ -25,7 +24,6 @@ public class ProjectMembershipsServiceTests
     private readonly Mock<IAuthorizationGuard> _authGuard;
     private readonly Mock<IProjectMembershipsRepository> _membershipsRepo;
     private readonly Mock<IProjectsRepository> _projectsRepo;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly Mock<IIssuesRepository> _issuesRepo;
     private readonly ProjectMembershipsService _service;
 
@@ -37,12 +35,10 @@ public class ProjectMembershipsServiceTests
         _authGuard = new Mock<IAuthorizationGuard>();
         _membershipsRepo = new Mock<IProjectMembershipsRepository>();
         _projectsRepo = new Mock<IProjectsRepository>();
-        _unitOfWork = new Mock<IUnitOfWork>();
         _issuesRepo = new Mock<IIssuesRepository>();
 
         _service = new ProjectMembershipsService(
             _membershipsRepo.Object,
-            _unitOfWork.Object,
             userMock.Object,
             _projectsRepo.Object,
             _authGuard.Object,
@@ -69,7 +65,6 @@ public class ProjectMembershipsServiceTests
         Assert.Equal(ProjectId, captured.ProjectId);
         Assert.Equal(OtherUserId, captured.UserId);
         Assert.Equal(ProjectMemberRole.Member, captured.Role);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -84,7 +79,6 @@ public class ProjectMembershipsServiceTests
         await _service.UpdateRole(ProjectId, "user20", ProjectMemberRole.Lead);
 
         Assert.Equal(ProjectMemberRole.Lead, membership.Role);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -99,7 +93,6 @@ public class ProjectMembershipsServiceTests
         await Assert.ThrowsAsync<BadRequestException>(
             () => _service.UpdateRole(ProjectId, "user10", ProjectMemberRole.Lead));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -114,7 +107,6 @@ public class ProjectMembershipsServiceTests
         await Assert.ThrowsAsync<BadRequestException>(
             () => _service.UpdateRole(ProjectId, "user30", ProjectMemberRole.Member));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -130,7 +122,6 @@ public class ProjectMembershipsServiceTests
 
         _issuesRepo.Verify(r => r.UnassignFromAllAsync(ProjectId, OtherUserId), Times.Once);
         _membershipsRepo.Verify(r => r.Remove(membership), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -177,7 +168,6 @@ public class ProjectMembershipsServiceTests
 
         _issuesRepo.Verify(r => r.UnassignFromAllAsync(ProjectId, CurrentUserId), Times.Once);
         _membershipsRepo.Verify(r => r.Remove(membership), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]

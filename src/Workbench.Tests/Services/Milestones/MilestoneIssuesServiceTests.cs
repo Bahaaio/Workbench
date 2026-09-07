@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
@@ -22,7 +21,6 @@ public class MilestoneIssuesServiceTests
     private readonly Mock<IAuthorizationGuard> _authGuard;
     private readonly Mock<IMilestonesRepository> _milestonesRepo;
     private readonly Mock<IIssuesRepository> _issuesRepo;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly MilestoneIssuesService _service;
 
     public MilestoneIssuesServiceTests()
@@ -30,12 +28,10 @@ public class MilestoneIssuesServiceTests
         _authGuard = new Mock<IAuthorizationGuard>();
         _milestonesRepo = new Mock<IMilestonesRepository>();
         _issuesRepo = new Mock<IIssuesRepository>();
-        _unitOfWork = new Mock<IUnitOfWork>();
 
         _service = new MilestoneIssuesService(
             _milestonesRepo.Object,
             _issuesRepo.Object,
-            _unitOfWork.Object,
             _authGuard.Object);
     }
 
@@ -102,7 +98,6 @@ public class MilestoneIssuesServiceTests
 
         Assert.Single(milestone.MilestoneItems);
         Assert.Equal(IssueId, milestone.MilestoneItems.First().IssueId);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -114,7 +109,6 @@ public class MilestoneIssuesServiceTests
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.AddIssue(ProjectId, MilestoneId, IssueId));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -137,7 +131,6 @@ public class MilestoneIssuesServiceTests
         await Assert.ThrowsAsync<BadRequestException>(
             () => _service.AddIssue(ProjectId, MilestoneId, IssueId));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -151,7 +144,6 @@ public class MilestoneIssuesServiceTests
         await Assert.ThrowsAsync<BadRequestException>(
             () => _service.AddIssue(ProjectId, MilestoneId, IssueId));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -176,7 +168,6 @@ public class MilestoneIssuesServiceTests
         await _service.RemoveIssue(ProjectId, MilestoneId, IssueId);
 
         Assert.Empty(milestone.MilestoneItems);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -188,7 +179,6 @@ public class MilestoneIssuesServiceTests
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.RemoveIssue(ProjectId, MilestoneId, IssueId));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]

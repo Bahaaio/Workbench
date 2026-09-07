@@ -1,5 +1,4 @@
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Repositories;
@@ -12,14 +11,11 @@ public class IssueTagsService : IIssueTagsService
     private readonly IAuthorizationGuard _authGuard;
     private readonly IIssuesRepository _issuesRepository;
     private readonly ITagsRepository _tagsRepository;
-    private readonly IUnitOfWork _unitOfWork;
-
     public IssueTagsService(IIssuesRepository issuesRepository, ITagsRepository tagsRepository,
-        IUnitOfWork unitOfWork, IAuthorizationGuard authGuard)
+        IAuthorizationGuard authGuard)
     {
         _issuesRepository = issuesRepository;
         _tagsRepository = tagsRepository;
-        _unitOfWork = unitOfWork;
         _authGuard = authGuard;
     }
 
@@ -37,7 +33,7 @@ public class IssueTagsService : IIssueTagsService
             throw new NotFoundException($"Tags {string.Join(", ", missing)} not found");
 
         issue.Tags = tagEntities;
-        await _unitOfWork.SaveChangesAsync();
+        await _issuesRepository.SaveChangesAsync();
 
         return issue.Tags.Select(t => t.Name).ToList();
     }

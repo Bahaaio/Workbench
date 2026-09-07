@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Workbench.Data;
-using Workbench.Data.Persistence;
-using Workbench.Data.Persistence.Implementations;
 using Workbench.Modules.Attachments;
 using Workbench.Modules.Auth;
 using Workbench.Modules.Authorization;
@@ -25,7 +23,6 @@ public static class ServiceExtensions
         {
             services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(configuration.GetConnectionString("Default")));
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
         }
 
         /// <summary>

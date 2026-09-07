@@ -1,5 +1,4 @@
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Milestones.Dtos;
@@ -16,15 +15,12 @@ public class MilestonesService : IMilestonesService
     private readonly IAuthorizationGuard _authGuard;
     private readonly IMilestonesRepository _milestonesRepository;
     private readonly IProjectsRepository _projectsRepository;
-    private readonly IUnitOfWork _unitOfWork;
-
     public MilestonesService(IMilestonesRepository milestonesRepository,
         IProjectsRepository projectsRepository,
-        IUnitOfWork unitOfWork, IAuthorizationGuard authGuard)
+        IAuthorizationGuard authGuard)
     {
         _milestonesRepository = milestonesRepository;
         _projectsRepository = projectsRepository;
-        _unitOfWork = unitOfWork;
         _authGuard = authGuard;
     }
 
@@ -55,7 +51,7 @@ public class MilestonesService : IMilestonesService
         };
 
         _milestonesRepository.Add(milestone);
-        await _unitOfWork.SaveChangesAsync();
+        await _milestonesRepository.SaveChangesAsync();
 
         return milestone.ToDto();
     }
@@ -70,7 +66,7 @@ public class MilestonesService : IMilestonesService
         milestone.Description = request.Description;
         milestone.DueDate = request.DueDate;
 
-        await _unitOfWork.SaveChangesAsync();
+        await _milestonesRepository.SaveChangesAsync();
 
         return milestone.ToDto();
     }
@@ -82,7 +78,7 @@ public class MilestonesService : IMilestonesService
         await _authGuard.AuthorizeProjectLead(milestone);
 
         _milestonesRepository.Remove(milestone);
-        await _unitOfWork.SaveChangesAsync();
+        await _milestonesRepository.SaveChangesAsync();
     }
 
     private static void ValidateProject(Milestone milestone, int projectId)

@@ -1,5 +1,4 @@
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Kanban.Dtos;
@@ -18,19 +17,15 @@ public class BoardColumnsService : IBoardColumnsService
     private readonly IBoardsRepository _boardsRepository;
     private readonly IBoardColumnsRepository _columnsRepository;
     private readonly IProjectsRepository _projectsRepository;
-    private readonly IUnitOfWork _unitOfWork;
-
     public BoardColumnsService(
         IBoardsRepository boardsRepository,
         IBoardColumnsRepository columnsRepository,
         IProjectsRepository projectsRepository,
-        IUnitOfWork unitOfWork,
         IAuthorizationGuard authGuard)
     {
         _boardsRepository = boardsRepository;
         _columnsRepository = columnsRepository;
         _projectsRepository = projectsRepository;
-        _unitOfWork = unitOfWork;
         _authGuard = authGuard;
     }
 
@@ -52,7 +47,7 @@ public class BoardColumnsService : IBoardColumnsService
         };
 
         _columnsRepository.Add(column);
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
 
         return column.ToDto();
     }
@@ -65,7 +60,7 @@ public class BoardColumnsService : IBoardColumnsService
         column.Description = request.Description;
         column.Color = request.Color;
 
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
 
         return column.ToDto();
     }
@@ -75,7 +70,7 @@ public class BoardColumnsService : IBoardColumnsService
         var column = await GetColumnForProject(projectId, columnId);
 
         _columnsRepository.Remove(column);
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
     }
 
     public async Task Reorder(int projectId, MoveColumnRequest request)
@@ -93,7 +88,7 @@ public class BoardColumnsService : IBoardColumnsService
             column?.Position = TempPositionOffset + i + 1;
         }
 
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
 
         // reorder again to set the correct positions
         for (var i = 0; i < ids.Count; i++)
@@ -102,7 +97,7 @@ public class BoardColumnsService : IBoardColumnsService
             column?.Position = i + 1;
         }
 
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
     }
 
     private async Task<BoardColumn> GetColumnForProject(int projectId, int columnId)

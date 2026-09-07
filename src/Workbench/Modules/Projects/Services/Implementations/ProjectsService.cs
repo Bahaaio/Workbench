@@ -1,4 +1,3 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
@@ -19,19 +18,17 @@ public class ProjectsService : IProjectsService
     private readonly IBoardsService _boardsService;
     private readonly IProjectMembershipsService _projectMembershipsService;
     private readonly IProjectsRepository _projectsRepository;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _user;
 
     public ProjectsService(IProjectsRepository projectsRepository,
         IProjectMembershipsService projectMembershipsService,
         IBoardsService boardsService,
-        ICurrentUser user, IUnitOfWork unitOfWork, IAuthorizationGuard authGuard)
+        ICurrentUser user, IAuthorizationGuard authGuard)
     {
         _projectsRepository = projectsRepository;
         _projectMembershipsService = projectMembershipsService;
         _boardsService = boardsService;
         _user = user;
-        _unitOfWork = unitOfWork;
         _authGuard = authGuard;
     }
 
@@ -53,7 +50,7 @@ public class ProjectsService : IProjectsService
         };
 
         _projectsRepository.Add(project);
-        await _unitOfWork.SaveChangesAsync();
+        await _projectsRepository.SaveChangesAsync();
 
         await _projectMembershipsService.AddMember(project.Id, _user.Id, ProjectMemberRole.Lead);
         await _boardsService.CreateEmpty(project.Id);
@@ -71,7 +68,7 @@ public class ProjectsService : IProjectsService
         project.Name = request.Name;
         if (request.Description is not null) project.Description = request.Description;
 
-        await _unitOfWork.SaveChangesAsync();
+        await _projectsRepository.SaveChangesAsync();
 
         return project.ToDto();
     }
@@ -82,6 +79,6 @@ public class ProjectsService : IProjectsService
         await _authGuard.AuthorizeOwner(project);
 
         _projectsRepository.Remove(project);
-        await _unitOfWork.SaveChangesAsync();
+        await _projectsRepository.SaveChangesAsync();
     }
 }

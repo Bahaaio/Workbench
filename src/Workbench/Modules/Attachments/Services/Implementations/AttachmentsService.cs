@@ -3,7 +3,6 @@ using Workbench.Common.Exceptions;
 using Workbench.Common.Extensions;
 using Workbench.Common.Models;
 using Workbench.Data;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Attachments.Dtos;
 using Workbench.Modules.Attachments.Mappers;
 using Workbench.Modules.Attachments.Models;
@@ -33,14 +32,12 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
     private readonly ILogger<AttachmentsService<TParent, TAttachment>> _logger;
     private readonly DbSet<TParent> _parentSet;
     private readonly IStorageService _storageService;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _user;
 
     protected AttachmentsService(
         IStorageService storageService,
         AppDbContext dbContext,
         IAttachmentsRepository<TAttachment> attachmentsRepository,
-        IUnitOfWork unitOfWork,
         ICurrentUser user,
         ILogger<AttachmentsService<TParent, TAttachment>> logger,
         IAttachmentValidationService attachmentValidationService)
@@ -48,7 +45,6 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
         _storageService = storageService;
         _parentSet = dbContext.Set<TParent>();
         _attachmentsRepository = attachmentsRepository;
-        _unitOfWork = unitOfWork;
         _user = user;
         _logger = logger;
         _attachmentValidationService = attachmentValidationService;
@@ -77,7 +73,7 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
         };
 
         _attachmentsRepository.Add(attachment);
-        await _unitOfWork.SaveChangesAsync();
+        await _attachmentsRepository.SaveChangesAsync();
 
         _logger.LogInformation(
             "User {userId} added attachment {attachmentId} to parent {ParentId}",
@@ -92,7 +88,7 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
 
         _attachmentsRepository.Remove(attachment);
         await _storageService.DeleteFile(attachmentId.ToString());
-        await _unitOfWork.SaveChangesAsync();
+        await _attachmentsRepository.SaveChangesAsync();
 
         _logger.LogInformation("User {userId} deleted attachment {attachmentId}",
             _user.Id, attachmentId);

@@ -98,4 +98,6 @@ public class IssuesRepository : IIssuesRepository
             .ExecuteUpdateAsync(s =>
                 s.SetProperty(i => i.AssignedToId, (int?)null));
     }
+
+    public Task SaveChangesAsync() => _context.SaveChangesAsync();
 }

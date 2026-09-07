@@ -28,4 +28,6 @@ public class BoardCardsRepository : IBoardCardsRepository
 
     public Task LoadIssueAsync(BoardCard card) =>
         _context.Entry(card).Reference(c => c.Issue).LoadAsync();
+
+    public Task SaveChangesAsync() => _context.SaveChangesAsync();
 }

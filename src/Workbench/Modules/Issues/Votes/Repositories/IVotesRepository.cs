@@ -17,4 +17,7 @@ public interface IVotesRepository
 
     /// <summary>Bulk-deletes the vote matching the composite key. No-op if not found.</summary>
     Task DeleteAsync(int issueId, int userId);
+
+    /// <summary>Persists all pending changes to the database.</summary>
+    Task SaveChangesAsync();
 }

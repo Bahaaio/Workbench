@@ -1,4 +1,3 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Kanban.Dtos;
 using Workbench.Modules.Kanban.Models;
 using Workbench.Modules.Kanban.Repositories;
@@ -10,14 +9,11 @@ public class BoardsService : IBoardsService
 {
     private readonly IBoardsRepository _boardsRepository;
     private readonly IProjectsRepository _projectsRepository;
-    private readonly IUnitOfWork _unitOfWork;
 
-    public BoardsService(IBoardsRepository boardsRepository, IProjectsRepository projectsRepository,
-        IUnitOfWork unitOfWork)
+    public BoardsService(IBoardsRepository boardsRepository, IProjectsRepository projectsRepository)
     {
         _boardsRepository = boardsRepository;
         _projectsRepository = projectsRepository;
-        _unitOfWork = unitOfWork;
     }
 
     public async Task<BoardDto> Get(int projectId)
@@ -35,6 +31,6 @@ public class BoardsService : IBoardsService
         };
 
         _boardsRepository.Add(board);
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
     }
 }

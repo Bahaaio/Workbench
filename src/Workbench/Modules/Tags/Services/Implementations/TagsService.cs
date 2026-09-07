@@ -1,5 +1,4 @@
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Projects.Repositories;
@@ -17,14 +16,11 @@ public class TagsService : ITagsService
     private readonly ILogger<TagsService> _logger;
     private readonly IProjectsRepository _projectsRepository;
     private readonly ITagsRepository _tagsRepository;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public TagsService(ITagsRepository tagsRepository, IUnitOfWork unitOfWork,
+    public TagsService(ITagsRepository tagsRepository,
         ILogger<TagsService> logger, IProjectsRepository projectsRepository,
         IAuthorizationGuard authGuard)
     {
         _tagsRepository = tagsRepository;
-        _unitOfWork = unitOfWork;
         _logger = logger;
         _projectsRepository = projectsRepository;
         _authGuard = authGuard;
@@ -47,7 +43,7 @@ public class TagsService : ITagsService
         };
 
         _tagsRepository.Add(tag);
-        await _unitOfWork.SaveChangesAsync();
+        await _tagsRepository.SaveChangesAsync();
 
         _logger.LogInformation("Created tag {tagName}", tag.Name);
 
@@ -67,7 +63,7 @@ public class TagsService : ITagsService
         tag.Description = request.Description;
         tag.Color = request.Color;
 
-        await _unitOfWork.SaveChangesAsync();
+        await _tagsRepository.SaveChangesAsync();
         return tag.ToDto();
     }
 

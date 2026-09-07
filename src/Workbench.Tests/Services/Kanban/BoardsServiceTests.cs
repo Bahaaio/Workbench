@@ -1,6 +1,5 @@
 using Moq;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Kanban.Dtos;
 using Workbench.Modules.Kanban.Models;
 using Workbench.Modules.Kanban.Repositories;
@@ -16,19 +15,16 @@ public class BoardsServiceTests
 
     private readonly Mock<IBoardsRepository> _boardsRepo;
     private readonly Mock<IProjectsRepository> _projectsRepo;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly BoardsService _service;
 
     public BoardsServiceTests()
     {
         _boardsRepo = new Mock<IBoardsRepository>();
         _projectsRepo = new Mock<IProjectsRepository>();
-        _unitOfWork = new Mock<IUnitOfWork>();
 
         _service = new BoardsService(
             _boardsRepo.Object,
-            _projectsRepo.Object,
-            _unitOfWork.Object);
+            _projectsRepo.Object);
     }
 
     [Fact]
@@ -68,6 +64,5 @@ public class BoardsServiceTests
 
         _boardsRepo.Verify(r => r.Add(It.Is<Board>(b =>
             b.Name == "Board" && b.ProjectId == ProjectId)), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 }

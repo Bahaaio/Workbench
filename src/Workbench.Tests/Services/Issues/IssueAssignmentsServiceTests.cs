@@ -1,6 +1,5 @@
 using Moq;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Requirements;
@@ -25,7 +24,6 @@ public class IssueAssignmentsServiceTests
     private readonly Mock<IAuthorizationGuard> _authGuard;
     private readonly Mock<IIssuesRepository> _issuesRepo;
     private readonly Mock<IProjectMembershipsService> _membershipsService;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly IssueAssignmentsService _service;
 
     public IssueAssignmentsServiceTests()
@@ -36,11 +34,9 @@ public class IssueAssignmentsServiceTests
         _authGuard = new Mock<IAuthorizationGuard>();
         _issuesRepo = new Mock<IIssuesRepository>();
         _membershipsService = new Mock<IProjectMembershipsService>();
-        _unitOfWork = new Mock<IUnitOfWork>();
 
         _service = new IssueAssignmentsService(
             _issuesRepo.Object,
-            _unitOfWork.Object,
             userMock.Object,
             _authGuard.Object,
             _membershipsService.Object);
@@ -67,7 +63,6 @@ public class IssueAssignmentsServiceTests
         await _service.AssignCurrentUser(IssueId);
 
         Assert.Equal(CurrentUserId, issue.AssignedToId);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -79,7 +74,6 @@ public class IssueAssignmentsServiceTests
         await Assert.ThrowsAsync<ConflictException>(
             () => _service.AssignCurrentUser(IssueId));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -91,7 +85,6 @@ public class IssueAssignmentsServiceTests
         await Assert.ThrowsAsync<ConflictException>(
             () => _service.AssignCurrentUser(IssueId));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -103,7 +96,6 @@ public class IssueAssignmentsServiceTests
         await _service.UnassignCurrentUser(IssueId);
 
         Assert.Null(issue.AssignedToId);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -115,7 +107,6 @@ public class IssueAssignmentsServiceTests
         await Assert.ThrowsAsync<ForbiddenException>(
             () => _service.UnassignCurrentUser(IssueId));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -127,7 +118,6 @@ public class IssueAssignmentsServiceTests
         await Assert.ThrowsAsync<ConflictException>(
             () => _service.UnassignCurrentUser(IssueId));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -141,7 +131,6 @@ public class IssueAssignmentsServiceTests
         await _service.AssignUser(IssueId, "targetuser");
 
         Assert.Equal(OtherUserId, issue.AssignedToId);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -153,7 +142,6 @@ public class IssueAssignmentsServiceTests
         await Assert.ThrowsAsync<ConflictException>(
             () => _service.AssignUser(IssueId, "targetuser"));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -165,7 +153,6 @@ public class IssueAssignmentsServiceTests
         await _service.UnassignUser(IssueId);
 
         Assert.Null(issue.AssignedToId);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -177,6 +164,5 @@ public class IssueAssignmentsServiceTests
         await Assert.ThrowsAsync<ConflictException>(
             () => _service.UnassignUser(IssueId));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 }

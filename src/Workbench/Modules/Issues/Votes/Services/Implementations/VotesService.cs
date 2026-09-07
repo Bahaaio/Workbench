@@ -1,4 +1,3 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Issues.Repositories;
 using Workbench.Modules.Issues.Votes.Dtos;
@@ -11,16 +10,14 @@ namespace Workbench.Modules.Issues.Votes.Services.Implementations;
 public class VotesService : IVotesService
 {
     private readonly IIssuesRepository _issuesRepository;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _user;
     private readonly IVotesRepository _votesRepository;
 
     public VotesService(IVotesRepository votesRepository, IIssuesRepository issuesRepository,
-        IUnitOfWork unitOfWork, ICurrentUser user)
+        ICurrentUser user)
     {
         _votesRepository = votesRepository;
         _issuesRepository = issuesRepository;
-        _unitOfWork = unitOfWork;
         _user = user;
     }
 
@@ -39,7 +36,7 @@ public class VotesService : IVotesService
         else
             existingVote.Value = request.Vote;
 
-        await _unitOfWork.SaveChangesAsync();
+        await _votesRepository.SaveChangesAsync();
     }
 
     public Task DeleteUserVote(int issueId) =>

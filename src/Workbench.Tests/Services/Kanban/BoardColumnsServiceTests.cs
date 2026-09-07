@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Enums;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Kanban.Dtos.Requests;
 using Workbench.Modules.Kanban.Models;
@@ -23,7 +22,6 @@ public class BoardColumnsServiceTests
     private readonly Mock<IBoardsRepository> _boardsRepo;
     private readonly Mock<IBoardColumnsRepository> _columnsRepo;
     private readonly Mock<IProjectsRepository> _projectsRepo;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly BoardColumnsService _service;
 
     public BoardColumnsServiceTests()
@@ -32,13 +30,11 @@ public class BoardColumnsServiceTests
         _boardsRepo = new Mock<IBoardsRepository>();
         _columnsRepo = new Mock<IBoardColumnsRepository>();
         _projectsRepo = new Mock<IProjectsRepository>();
-        _unitOfWork = new Mock<IUnitOfWork>();
 
         _service = new BoardColumnsService(
             _boardsRepo.Object,
             _columnsRepo.Object,
             _projectsRepo.Object,
-            _unitOfWork.Object,
             _authGuard.Object);
     }
 
@@ -90,7 +86,6 @@ public class BoardColumnsServiceTests
 
         Assert.Equal(3, result.Position);
         _columnsRepo.Verify(r => r.Add(It.IsAny<BoardColumn>()), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -129,7 +124,6 @@ public class BoardColumnsServiceTests
                 Color = Color.Blue
             }));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -150,7 +144,6 @@ public class BoardColumnsServiceTests
         Assert.Equal("Updated", result.Name);
         Assert.Equal("New", result.Description);
         Assert.Equal(Color.Red, result.Color);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -168,7 +161,6 @@ public class BoardColumnsServiceTests
                 Color = Color.Blue
             }));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -182,7 +174,6 @@ public class BoardColumnsServiceTests
         await _service.Delete(ProjectId, ColumnId);
 
         _columnsRepo.Verify(r => r.Remove(column), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -213,7 +204,6 @@ public class BoardColumnsServiceTests
         Assert.Equal(1, col3.Position);
         Assert.Equal(2, col1.Position);
         Assert.Equal(3, col2.Position);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Exactly(2));
     }
 
     [Fact]
@@ -227,7 +217,5 @@ public class BoardColumnsServiceTests
 
         await Assert.ThrowsAsync<ForbiddenException>(
             () => _service.Reorder(ProjectId, new MoveColumnRequest { ColumnIds = [] }));
-
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 }

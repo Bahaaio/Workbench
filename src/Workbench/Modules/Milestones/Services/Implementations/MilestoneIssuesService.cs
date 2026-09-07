@@ -1,5 +1,4 @@
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Dtos;
@@ -14,15 +13,12 @@ public class MilestoneIssuesService : IMilestoneIssuesService
     private readonly IAuthorizationGuard _authGuard;
     private readonly IIssuesRepository _issuesRepository;
     private readonly IMilestonesRepository _milestonesRepository;
-    private readonly IUnitOfWork _unitOfWork;
-
     public MilestoneIssuesService(IMilestonesRepository milestonesRepository,
         IIssuesRepository issuesRepository,
-        IUnitOfWork unitOfWork, IAuthorizationGuard authGuard)
+        IAuthorizationGuard authGuard)
     {
         _milestonesRepository = milestonesRepository;
         _issuesRepository = issuesRepository;
-        _unitOfWork = unitOfWork;
         _authGuard = authGuard;
     }
 
@@ -53,7 +49,7 @@ public class MilestoneIssuesService : IMilestoneIssuesService
             IssueId = issueId
         });
 
-        await _unitOfWork.SaveChangesAsync();
+        await _milestonesRepository.SaveChangesAsync();
     }
 
     public async Task RemoveIssue(int projectId, int milestoneId, int issueId)
@@ -67,7 +63,7 @@ public class MilestoneIssuesService : IMilestoneIssuesService
                    ?? throw new NotFoundException("Issue is not in this milestone");
 
         milestone.MilestoneItems.Remove(item);
-        await _unitOfWork.SaveChangesAsync();
+        await _milestonesRepository.SaveChangesAsync();
     }
 
     private static void ValidateProject(Milestone milestone, int projectId)

@@ -1,4 +1,3 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
@@ -17,16 +16,14 @@ public class CommentsService : ICommentsService
     private readonly ICommentsRepository _commentsRepository;
     private readonly IIssuesRepository _issuesRepository;
     private readonly ILogger<CommentsService> _logger;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _user;
 
     public CommentsService(ICurrentUser user, ILogger<CommentsService> logger,
         IAuthorizationGuard authGuard, ICommentsRepository commentsRepository,
-        IUnitOfWork unitOfWork, IIssuesRepository issuesRepository)
+        IIssuesRepository issuesRepository)
     {
         _authGuard = authGuard;
         _commentsRepository = commentsRepository;
-        _unitOfWork = unitOfWork;
         _issuesRepository = issuesRepository;
         _user = user;
         _logger = logger;
@@ -47,7 +44,7 @@ public class CommentsService : ICommentsService
         };
 
         _commentsRepository.Add(comment);
-        await _unitOfWork.SaveChangesAsync();
+        await _commentsRepository.SaveChangesAsync();
 
         _logger.LogInformation("User {userId} created comment {commentId} on issue {issueId}",
             _user.Id, comment.Id, issueId);
@@ -62,7 +59,7 @@ public class CommentsService : ICommentsService
         await _authGuard.AuthorizeOwnerOrProjectMember(comment);
 
         comment.Content = request.Content;
-        await _unitOfWork.SaveChangesAsync();
+        await _commentsRepository.SaveChangesAsync();
 
         _logger.LogInformation("User {userId} updated comment {commentId}", _user.Id, commentId);
 
@@ -75,7 +72,7 @@ public class CommentsService : ICommentsService
         await _authGuard.AuthorizeOwnerOrProjectMember(comment);
 
         _commentsRepository.Remove(comment);
-        await _unitOfWork.SaveChangesAsync();
+        await _commentsRepository.SaveChangesAsync();
 
         _logger.LogInformation("User {userId} deleted comment {commentId}", _user.Id, commentId);
     }

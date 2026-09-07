@@ -10,10 +10,12 @@ namespace Workbench.Modules.Attachments.Repositories.Implementations;
 public class AttachmentsRepository<TAttachment> : IAttachmentsRepository<TAttachment>
     where TAttachment : Attachment, IHasParent, new()
 {
+    private readonly AppDbContext _dbContext;
     private readonly DbSet<TAttachment> _dbSet;
 
     public AttachmentsRepository(AppDbContext context)
     {
+        _dbContext = context;
         _dbSet = context.Set<TAttachment>();
     }
 
@@ -40,4 +42,6 @@ public class AttachmentsRepository<TAttachment> : IAttachmentsRepository<TAttach
             .Select(a => (int?)a.ParentId)
             .SingleOrDefaultAsync()
         ?? throw new NotFoundException($"Attachment with id: {attachmentId} not found");
+
+    public Task SaveChangesAsync() => _dbContext.SaveChangesAsync();
 }

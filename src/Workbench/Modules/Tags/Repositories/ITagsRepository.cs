@@ -31,4 +31,5 @@ public interface ITagsRepository
     ///     project with the given <paramref name="projectId" />.
     /// </summary>
     Task<int> DeleteByNameAsync(int projectId, string name);
+    Task SaveChangesAsync();
 }

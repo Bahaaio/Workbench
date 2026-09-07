@@ -11,11 +11,13 @@ namespace Workbench.Modules.Comments.Repositories.Implementations;
 
 public class CommentsRepository : ICommentsRepository
 {
+    private readonly AppDbContext _dbContext;
     private readonly DbSet<Comment> _dbSet;
     private readonly DbSet<Issue> _issues;
 
     public CommentsRepository(AppDbContext context)
     {
+        _dbContext = context;
         _dbSet = context.Set<Comment>();
         _issues = context.Set<Issue>();
     }
@@ -44,4 +46,6 @@ public class CommentsRepository : ICommentsRepository
             .Select(CommentMapper.ToDtoExpression)
             .ToListAsync();
     }
+
+    public Task SaveChangesAsync() => _dbContext.SaveChangesAsync();
 }

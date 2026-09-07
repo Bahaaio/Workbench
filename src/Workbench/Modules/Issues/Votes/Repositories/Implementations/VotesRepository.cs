@@ -6,10 +6,12 @@ namespace Workbench.Modules.Issues.Votes.Repositories.Implementations;
 
 public class VotesRepository : IVotesRepository
 {
+    private readonly AppDbContext _dbContext;
     private readonly DbSet<Vote> _entitySet;
 
     public VotesRepository(AppDbContext context)
     {
+        _dbContext = context;
         _entitySet = context.Set<Vote>();
     }
 
@@ -23,4 +25,6 @@ public class VotesRepository : IVotesRepository
         _entitySet
             .Where(v => v.IssueId == issueId && v.VoterId == userId)
             .ExecuteDeleteAsync();
+
+    public Task SaveChangesAsync() => _dbContext.SaveChangesAsync();
 }

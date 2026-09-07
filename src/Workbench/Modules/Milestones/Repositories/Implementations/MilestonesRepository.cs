@@ -62,4 +62,6 @@ public class MilestonesRepository : IMilestonesRepository
             .Select(mi => mi.Issue)
             .Select(IssueMapper.ToDtoExpression)
             .ToListAsync();
+
+    public Task SaveChangesAsync() => _context.SaveChangesAsync();
 }

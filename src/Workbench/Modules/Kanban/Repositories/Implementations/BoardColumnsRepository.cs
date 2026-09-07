@@ -6,10 +6,12 @@ namespace Workbench.Modules.Kanban.Repositories.Implementations;
 
 public class BoardColumnsRepository : IBoardColumnsRepository
 {
+    private readonly AppDbContext _dbContext;
     private readonly DbSet<BoardColumn> _dbSet;
 
     public BoardColumnsRepository(AppDbContext context)
     {
+        _dbContext = context;
         _dbSet = context.Set<BoardColumn>();
     }
 
@@ -18,4 +20,6 @@ public class BoardColumnsRepository : IBoardColumnsRepository
     public BoardColumn Update(BoardColumn entity) => _dbSet.Update(entity).Entity;
 
     public void Remove(BoardColumn entity) => _dbSet.Remove(entity);
+
+    public Task SaveChangesAsync() => _dbContext.SaveChangesAsync();
 }

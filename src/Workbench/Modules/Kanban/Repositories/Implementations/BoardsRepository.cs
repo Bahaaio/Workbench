@@ -8,10 +8,12 @@ namespace Workbench.Modules.Kanban.Repositories.Implementations;
 
 public class BoardsRepository : IBoardsRepository
 {
+    private readonly AppDbContext _dbContext;
     private readonly DbSet<Board> _dbSet;
 
     public BoardsRepository(AppDbContext context)
     {
+        _dbContext = context;
         _dbSet = context.Set<Board>();
     }
 
@@ -33,4 +35,6 @@ public class BoardsRepository : IBoardsRepository
             .ThenInclude(c => c.Cards)
             .ThenInclude(c => c.Issue)
             .SingleAsync(b => b.ProjectId == projectId);
+
+    public Task SaveChangesAsync() => _dbContext.SaveChangesAsync();
 }

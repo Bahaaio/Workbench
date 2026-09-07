@@ -10,4 +10,5 @@ public interface IProjectMembershipsRepository
     Task<List<ProjectMembershipDto>> GetMembershipsByProjectId(int projectId);
     void Add(ProjectMembership membership);
     void Remove(ProjectMembership membership);
+    Task SaveChangesAsync();
 }

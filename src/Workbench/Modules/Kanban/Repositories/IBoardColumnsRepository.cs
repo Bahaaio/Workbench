@@ -7,4 +7,5 @@ public interface IBoardColumnsRepository
     BoardColumn Add(BoardColumn entity);
     BoardColumn Update(BoardColumn entity);
     void Remove(BoardColumn entity);
+    Task SaveChangesAsync();
 }

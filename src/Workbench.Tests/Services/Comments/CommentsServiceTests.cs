@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Requirements;
@@ -25,7 +24,6 @@ public class CommentsServiceTests
     private readonly Mock<ICommentsRepository> _commentsRepo;
     private readonly Mock<IIssuesRepository> _issuesRepo;
     private readonly CommentsService _service;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
 
     public CommentsServiceTests()
     {
@@ -35,7 +33,6 @@ public class CommentsServiceTests
 
         _authGuard = new Mock<IAuthorizationGuard>();
         _commentsRepo = new Mock<ICommentsRepository>();
-        _unitOfWork = new Mock<IUnitOfWork>();
         _issuesRepo = new Mock<IIssuesRepository>();
 
         _service = new CommentsService(
@@ -43,7 +40,6 @@ public class CommentsServiceTests
             Mock.Of<ILogger<CommentsService>>(),
             _authGuard.Object,
             _commentsRepo.Object,
-            _unitOfWork.Object,
             _issuesRepo.Object);
     }
 
@@ -95,7 +91,6 @@ public class CommentsServiceTests
         Assert.Equal("hello", result.Content);
         Assert.Equal(CurrentUsername, result.AuthorUsername);
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -109,7 +104,6 @@ public class CommentsServiceTests
             () => _service.Create(999, new CreateCommentRequest("content")));
 
         _commentsRepo.Verify(r => r.Add(It.IsAny<Comment>()), Times.Never);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -122,7 +116,6 @@ public class CommentsServiceTests
 
         Assert.Equal("updated", comment.Content);
         Assert.Equal("updated", result.Content);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -139,7 +132,6 @@ public class CommentsServiceTests
             () => _service.Update(1, new UpdateCommentRequest("hijacked")));
 
         Assert.Equal("protected", comment.Content);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -151,7 +143,6 @@ public class CommentsServiceTests
         await _service.Delete(1);
 
         _commentsRepo.Verify(r => r.Remove(comment), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -168,6 +159,5 @@ public class CommentsServiceTests
             () => _service.Delete(1));
 
         _commentsRepo.Verify(r => r.Remove(It.IsAny<Comment>()), Times.Never);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 }

@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Dtos.Requests;
@@ -21,7 +20,6 @@ public class IssueStatusServiceTests
     private readonly Mock<IAuthorizationGuard> _authGuard;
     private readonly Mock<IIssuesRepository> _issuesRepo;
     private readonly Mock<IIssueStatusChangeRepository> _statusChangeRepo;
-    private readonly Mock<IUnitOfWork> _unitOfWork;
     private readonly IssueStatusService _service;
 
     public IssueStatusServiceTests()
@@ -32,12 +30,10 @@ public class IssueStatusServiceTests
         _authGuard = new Mock<IAuthorizationGuard>();
         _issuesRepo = new Mock<IIssuesRepository>();
         _statusChangeRepo = new Mock<IIssueStatusChangeRepository>();
-        _unitOfWork = new Mock<IUnitOfWork>();
 
         _service = new IssueStatusService(
             _issuesRepo.Object,
             _statusChangeRepo.Object,
-            _unitOfWork.Object,
             userMock.Object,
             _authGuard.Object,
             Mock.Of<ILogger<IssueStatusService>>());
@@ -68,7 +64,6 @@ public class IssueStatusServiceTests
             sc.FromStatus == Status.Open &&
             sc.ToStatus == Status.InProgress &&
             sc.ChangedByUserId == CurrentUserId)), Times.Once);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -80,7 +75,6 @@ public class IssueStatusServiceTests
         await _service.UpdateStatus(IssueId, new UpdateIssueStatusRequest(Status.Open));
 
         _statusChangeRepo.Verify(r => r.Add(It.IsAny<IssueStatusChange>()), Times.Never);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -94,7 +88,6 @@ public class IssueStatusServiceTests
         await Assert.ThrowsAsync<ForbiddenException>(
             () => _service.UpdateStatus(IssueId, new UpdateIssueStatusRequest(Status.Closed)));
 
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -106,7 +99,6 @@ public class IssueStatusServiceTests
         await _service.UpdateStatus(IssueId, new UpdateIssueStatusRequest(Status.Closed));
 
         Assert.Equal(Status.Closed, issue.Status);
-        _unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]

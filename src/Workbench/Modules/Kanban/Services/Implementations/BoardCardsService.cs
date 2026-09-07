@@ -1,5 +1,4 @@
 using Workbench.Common.Exceptions;
-using Workbench.Data.Persistence;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Kanban.Dtos;
@@ -18,19 +17,15 @@ public class BoardCardsService : IBoardCardsService
     private readonly IBoardsRepository _boardsRepository;
     private readonly IBoardCardsRepository _cardsRepository;
     private readonly IProjectsRepository _projectsRepository;
-    private readonly IUnitOfWork _unitOfWork;
-
     public BoardCardsService(
         IBoardsRepository boardsRepository,
         IBoardCardsRepository cardsRepository,
         IProjectsRepository projectsRepository,
-        IUnitOfWork unitOfWork,
         IAuthorizationGuard authGuard)
     {
         _boardsRepository = boardsRepository;
         _cardsRepository = cardsRepository;
         _projectsRepository = projectsRepository;
-        _unitOfWork = unitOfWork;
         _authGuard = authGuard;
     }
 
@@ -58,7 +53,7 @@ public class BoardCardsService : IBoardCardsService
         };
 
         _cardsRepository.Add(card);
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
 
         await _cardsRepository.LoadIssueAsync(card);
         return card.ToDto();
@@ -72,7 +67,7 @@ public class BoardCardsService : IBoardCardsService
         var card = await _cardsRepository.GetByIdAsync(cardId);
         _cardsRepository.Remove(card);
 
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
     }
 
     public async Task<CardDto> Move(int projectId, int cardId, MoveCardRequest request)
@@ -128,7 +123,7 @@ public class BoardCardsService : IBoardCardsService
                 card.Position = TempPositionOffset + i + 1;
         }
 
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
 
         // Source final positions + target final positions in one save
         for (var i = 0; i < sourceCardIds.Count; i++)
@@ -146,7 +141,7 @@ public class BoardCardsService : IBoardCardsService
                 card.Position = i + 1;
         }
 
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
 
         await _cardsRepository.LoadIssueAsync(card);
         return card.ToDto();
@@ -171,7 +166,7 @@ public class BoardCardsService : IBoardCardsService
             card?.Position = TempPositionOffset + i + 1;
         }
 
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
 
         // reorder again to set the correct positions
         for (var i = 0; i < ids.Count; i++)
@@ -180,6 +175,6 @@ public class BoardCardsService : IBoardCardsService
             card?.Position = i + 1;
         }
 
-        await _unitOfWork.SaveChangesAsync();
+        await _boardsRepository.SaveChangesAsync();
     }
 }
