@@ -1,5 +1,3 @@
-using Workbench.Modules.Milestones.Repositories;
-using Workbench.Modules.Milestones.Repositories.Implementations;
 using Workbench.Modules.Milestones.Services;
 using Workbench.Modules.Milestones.Services.Implementations;
 
@@ -13,7 +11,6 @@ public static class DependencyInjection
         {
             services.AddScoped<IMilestonesService, MilestonesService>();
             services.AddScoped<IMilestoneIssuesService, MilestoneIssuesService>();
-            services.AddScoped<IMilestonesRepository, MilestonesRepository>();
         }
     }
 }

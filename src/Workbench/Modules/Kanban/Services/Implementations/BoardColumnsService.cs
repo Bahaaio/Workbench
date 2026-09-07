@@ -1,38 +1,33 @@
+using Microsoft.EntityFrameworkCore;
 using Workbench.Common.Exceptions;
+using Workbench.Common.Extensions;
+using Workbench.Data;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Kanban.Dtos;
 using Workbench.Modules.Kanban.Dtos.Requests;
 using Workbench.Modules.Kanban.Mappers;
 using Workbench.Modules.Kanban.Models;
-using Workbench.Modules.Kanban.Repositories;
-using Workbench.Modules.Projects.Repositories;
+using Workbench.Modules.Projects.Models;
 
 namespace Workbench.Modules.Kanban.Services.Implementations;
 
 public class BoardColumnsService : IBoardColumnsService
 {
     private const int TempPositionOffset = 1000;
+    private readonly AppDbContext _db;
     private readonly IAuthorizationGuard _authGuard;
-    private readonly IBoardsRepository _boardsRepository;
-    private readonly IBoardColumnsRepository _columnsRepository;
-    private readonly IProjectsRepository _projectsRepository;
-    public BoardColumnsService(
-        IBoardsRepository boardsRepository,
-        IBoardColumnsRepository columnsRepository,
-        IProjectsRepository projectsRepository,
-        IAuthorizationGuard authGuard)
+
+    public BoardColumnsService(AppDbContext dbContext, IAuthorizationGuard authGuard)
     {
-        _boardsRepository = boardsRepository;
-        _columnsRepository = columnsRepository;
-        _projectsRepository = projectsRepository;
+        _db = dbContext;
         _authGuard = authGuard;
     }
 
     public async Task<ColumnDto> Add(int projectId, CreateColumnRequest request)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        var board = await _boardsRepository.GetByProjectIdRaw(projectId);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        var board = await GetBoardRaw(projectId);
         await _authGuard.AuthorizeProjectLead(board);
 
         var maxPosition = board.Columns.Count > 0 ? board.Columns.Max(c => c.Position) : 0;
@@ -46,8 +41,8 @@ public class BoardColumnsService : IBoardColumnsService
             BoardId = board.Id
         };
 
-        _columnsRepository.Add(column);
-        await _boardsRepository.SaveChangesAsync();
+        _db.BoardColumns.Add(column);
+        await _db.SaveChangesAsync();
 
         return column.ToDto();
     }
@@ -60,7 +55,7 @@ public class BoardColumnsService : IBoardColumnsService
         column.Description = request.Description;
         column.Color = request.Color;
 
-        await _boardsRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
 
         return column.ToDto();
     }
@@ -69,47 +64,50 @@ public class BoardColumnsService : IBoardColumnsService
     {
         var column = await GetColumnForProject(projectId, columnId);
 
-        _columnsRepository.Remove(column);
-        await _boardsRepository.SaveChangesAsync();
+        _db.BoardColumns.Remove(column);
+        await _db.SaveChangesAsync();
     }
 
     public async Task Reorder(int projectId, MoveColumnRequest request)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        var board = await _boardsRepository.GetByProjectIdRaw(projectId);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        var board = await GetBoardRaw(projectId);
         await _authGuard.AuthorizeProjectLead(board);
 
         var ids = request.ColumnIds;
 
-        // set temporary positions to avoid unique constraint violations
         for (var i = 0; i < ids.Count; i++)
         {
             var column = board.Columns.FirstOrDefault(c => c.Id == ids[i]);
             column?.Position = TempPositionOffset + i + 1;
         }
 
-        await _boardsRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
 
-        // reorder again to set the correct positions
         for (var i = 0; i < ids.Count; i++)
         {
             var column = board.Columns.FirstOrDefault(c => c.Id == ids[i]);
             column?.Position = i + 1;
         }
 
-        await _boardsRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
     }
 
     private async Task<BoardColumn> GetColumnForProject(int projectId, int columnId)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        var board = await _boardsRepository.GetByProjectIdRaw(projectId);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        var board = await GetBoardRaw(projectId);
         await _authGuard.AuthorizeProjectLead(board);
 
-        var column = board.Columns.FirstOrDefault(c => c.Id == columnId)
-                     ?? throw new NotFoundException(
-                         $"Column {columnId} not found in project {projectId}");
-
-        return column;
+        return board.Columns.FirstOrDefault(c => c.Id == columnId)
+               ?? throw new NotFoundException(
+                   $"Column {columnId} not found in project {projectId}");
     }
+
+    private Task<Board> GetBoardRaw(int projectId) =>
+        _db.Boards
+            .Include(b => b.Columns)
+            .ThenInclude(c => c.Cards)
+            .ThenInclude(c => c.Issue)
+            .SingleAsync(b => b.ProjectId == projectId);
 }

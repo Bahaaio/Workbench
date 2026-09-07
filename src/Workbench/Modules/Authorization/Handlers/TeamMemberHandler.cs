@@ -1,19 +1,21 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Workbench.Data;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Models;
 using Workbench.Modules.Authorization.Requirements;
-using Workbench.Modules.Projects.Memberships.Repositories;
+using Workbench.Modules.Projects.Memberships.Models;
 
 namespace Workbench.Modules.Authorization.Handlers;
 
 public class TeamMemberHandler : AuthorizationHandler<TeamMemberRequirement, IBelongsToProject>
 {
-    private readonly IProjectMembershipsRepository _membershipsRepository;
+    private readonly AppDbContext _db;
     private readonly ICurrentUser _user;
 
-    public TeamMemberHandler(IProjectMembershipsRepository membershipsRepository, ICurrentUser user)
+    public TeamMemberHandler(AppDbContext db, ICurrentUser user)
     {
-        _membershipsRepository = membershipsRepository;
+        _db = db;
         _user = user;
     }
 
@@ -22,8 +24,9 @@ public class TeamMemberHandler : AuthorizationHandler<TeamMemberRequirement, IBe
         TeamMemberRequirement requirement,
         IBelongsToProject resource)
     {
-        var membership = await _membershipsRepository
-            .FindMembershipByProjectIdAndUserId(resource.ProjectId, _user.Id);
+        var membership = await _db.ProjectMemberships
+            .SingleOrDefaultAsync(pm =>
+                pm.ProjectId == resource.ProjectId && pm.UserId == _user.Id);
 
         if (membership is not null)
             context.Succeed(requirement);

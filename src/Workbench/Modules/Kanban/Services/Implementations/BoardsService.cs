@@ -1,25 +1,29 @@
+using Microsoft.EntityFrameworkCore;
+using Workbench.Common.Extensions;
+using Workbench.Data;
 using Workbench.Modules.Kanban.Dtos;
+using Workbench.Modules.Kanban.Mappers;
 using Workbench.Modules.Kanban.Models;
-using Workbench.Modules.Kanban.Repositories;
-using Workbench.Modules.Projects.Repositories;
+using Workbench.Modules.Projects.Models;
 
 namespace Workbench.Modules.Kanban.Services.Implementations;
 
 public class BoardsService : IBoardsService
 {
-    private readonly IBoardsRepository _boardsRepository;
-    private readonly IProjectsRepository _projectsRepository;
+    private readonly AppDbContext _db;
 
-    public BoardsService(IBoardsRepository boardsRepository, IProjectsRepository projectsRepository)
+    public BoardsService(AppDbContext dbContext)
     {
-        _boardsRepository = boardsRepository;
-        _projectsRepository = projectsRepository;
+        _db = dbContext;
     }
 
     public async Task<BoardDto> Get(int projectId)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        return await _boardsRepository.GetByProjectId(projectId);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        return await _db.Boards
+            .Where(b => b.ProjectId == projectId)
+            .Select(BoardMapper.ToDtoExpression)
+            .SingleAsync();
     }
 
     public async Task CreateEmpty(int projectId)
@@ -30,7 +34,7 @@ public class BoardsService : IBoardsService
             ProjectId = projectId
         };
 
-        _boardsRepository.Add(board);
-        await _boardsRepository.SaveChangesAsync();
+        _db.Boards.Add(board);
+        await _db.SaveChangesAsync();
     }
 }

@@ -5,77 +5,59 @@ using Workbench.Common.Exceptions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Kanban.Dtos.Requests;
 using Workbench.Modules.Kanban.Models;
-using Workbench.Modules.Kanban.Repositories;
 using Workbench.Modules.Kanban.Services.Implementations;
-using Workbench.Modules.Projects.Models;
-using Workbench.Modules.Projects.Repositories;
+using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Kanban;
 
-public class BoardColumnsServiceTests
+public class BoardColumnsServiceTests : IDisposable
 {
     private const int ProjectId = 1;
     private const int BoardId = 10;
     private const int ColumnId = 20;
 
+    private readonly Data.AppDbContext _db;
     private readonly Mock<IAuthorizationGuard> _authGuard;
-    private readonly Mock<IBoardsRepository> _boardsRepo;
-    private readonly Mock<IBoardColumnsRepository> _columnsRepo;
-    private readonly Mock<IProjectsRepository> _projectsRepo;
     private readonly BoardColumnsService _service;
 
     public BoardColumnsServiceTests()
     {
+        _db = TestDbContextFactory.Create();
         _authGuard = new Mock<IAuthorizationGuard>();
-        _boardsRepo = new Mock<IBoardsRepository>();
-        _columnsRepo = new Mock<IBoardColumnsRepository>();
-        _projectsRepo = new Mock<IProjectsRepository>();
-
-        _service = new BoardColumnsService(
-            _boardsRepo.Object,
-            _columnsRepo.Object,
-            _projectsRepo.Object,
-            _authGuard.Object);
+        _service = new BoardColumnsService(_db, _authGuard.Object);
     }
 
-    private static Board MakeBoard(List<BoardColumn>? columns = null) =>
-        new()
+    public void Dispose() => _db.Dispose();
+
+    private async Task SeedBoard(List<BoardColumn>? columns = null)
+    {
+        var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+        _db.Users.Add(owner);
+        _db.Projects.Add(new Modules.Projects.Models.Project
+        {
+            Id = ProjectId,
+            OwnerId = 1,
+            Name = "P",
+            Description = null,
+        });
+
+        var board = new Board
         {
             Id = BoardId,
             Name = "Board",
             ProjectId = ProjectId,
             Columns = columns ?? [],
-            Project = new Project
-            {
-                Id = ProjectId,
-                OwnerId = 1,
-                Name = "P",
-                Description = null,
-                Owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "u" }
-            }
         };
-
-    private static BoardColumn MakeColumn(int id = ColumnId, int position = 1) =>
-        new()
-        {
-            Id = id,
-            Name = "Col",
-            Description = null,
-            Position = position,
-            Color = Color.Blue,
-            BoardId = BoardId,
-            Board = null!,
-            Cards = []
-        };
+        _db.Boards.Add(board);
+        await _db.SaveChangesAsync();
+    }
 
     [Fact]
     public async Task Add_CreatesColumn_WithCorrectPosition()
     {
-        var board = MakeBoard(columns: [MakeColumn(position: 1), MakeColumn(id: 21, position: 2)]);
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId)).Returns(Task.CompletedTask);
-        _boardsRepo.Setup(r => r.GetByProjectIdRaw(ProjectId)).ReturnsAsync(board);
-        _columnsRepo.Setup(r => r.Add(It.IsAny<BoardColumn>()))
-            .Callback<BoardColumn>(c => c.Id = ColumnId);
+        var col1 = new BoardColumn { Id = 1, Name = "C1", Description = null, Position = 1, Color = Color.Blue, BoardId = BoardId, Cards = [] };
+        var col2 = new BoardColumn { Id = 2, Name = "C2", Description = null, Position = 2, Color = Color.Blue, BoardId = BoardId, Cards = [] };
+        await SeedBoard(columns: [col1, col2]);
 
         var result = await _service.Add(ProjectId, new CreateColumnRequest
         {
@@ -85,17 +67,12 @@ public class BoardColumnsServiceTests
         });
 
         Assert.Equal(3, result.Position);
-        _columnsRepo.Verify(r => r.Add(It.IsAny<BoardColumn>()), Times.Once);
     }
 
     [Fact]
     public async Task Add_CreatesColumnAtPosition1_WhenNoExistingColumns()
     {
-        var board = MakeBoard(columns: []);
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId)).Returns(Task.CompletedTask);
-        _boardsRepo.Setup(r => r.GetByProjectIdRaw(ProjectId)).ReturnsAsync(board);
-        _columnsRepo.Setup(r => r.Add(It.IsAny<BoardColumn>()))
-            .Callback<BoardColumn>(c => c.Id = ColumnId);
+        await SeedBoard(columns: []);
 
         var result = await _service.Add(ProjectId, new CreateColumnRequest
         {
@@ -110,9 +87,7 @@ public class BoardColumnsServiceTests
     [Fact]
     public async Task Add_Throws_WhenNotProjectLead()
     {
-        var board = MakeBoard();
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId)).Returns(Task.CompletedTask);
-        _boardsRepo.Setup(r => r.GetByProjectIdRaw(ProjectId)).ReturnsAsync(board);
+        await SeedBoard();
         _authGuard.Setup(g => g.Authorize(It.IsAny<Board>(), It.IsAny<IAuthorizationRequirement>()))
             .ThrowsAsync(new ForbiddenException("Not lead"));
 
@@ -123,16 +98,22 @@ public class BoardColumnsServiceTests
                 Description = null,
                 Color = Color.Blue
             }));
-
     }
 
     [Fact]
     public async Task Update_UpdatesColumnFields()
     {
-        var column = MakeColumn();
-        var board = MakeBoard(columns: [column]);
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId)).Returns(Task.CompletedTask);
-        _boardsRepo.Setup(r => r.GetByProjectIdRaw(ProjectId)).ReturnsAsync(board);
+        var column = new BoardColumn
+        {
+            Id = ColumnId,
+            Name = "Col",
+            Description = null,
+            Position = 1,
+            Color = Color.Blue,
+            BoardId = BoardId,
+            Cards = [],
+        };
+        await SeedBoard(columns: [column]);
 
         var result = await _service.Update(ProjectId, ColumnId, new UpdateColumnRequest
         {
@@ -149,9 +130,7 @@ public class BoardColumnsServiceTests
     [Fact]
     public async Task Update_Throws_WhenColumnNotFound()
     {
-        var board = MakeBoard(columns: []);
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId)).Returns(Task.CompletedTask);
-        _boardsRepo.Setup(r => r.GetByProjectIdRaw(ProjectId)).ReturnsAsync(board);
+        await SeedBoard(columns: []);
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.Update(ProjectId, ColumnId, new UpdateColumnRequest
@@ -160,58 +139,56 @@ public class BoardColumnsServiceTests
                 Description = null,
                 Color = Color.Blue
             }));
-
     }
 
     [Fact]
     public async Task Delete_RemovesColumn()
     {
-        var column = MakeColumn();
-        var board = MakeBoard(columns: [column]);
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId)).Returns(Task.CompletedTask);
-        _boardsRepo.Setup(r => r.GetByProjectIdRaw(ProjectId)).ReturnsAsync(board);
+        var column = new BoardColumn
+        {
+            Id = ColumnId,
+            Name = "Col",
+            Description = null,
+            Position = 1,
+            Color = Color.Blue,
+            BoardId = BoardId,
+            Cards = [],
+        };
+        await SeedBoard(columns: [column]);
 
         await _service.Delete(ProjectId, ColumnId);
 
-        _columnsRepo.Verify(r => r.Remove(column), Times.Once);
+        Assert.Null(_db.BoardColumns.Find(ColumnId));
     }
 
     [Fact]
     public async Task Delete_Throws_WhenColumnNotFound()
     {
-        var board = MakeBoard(columns: []);
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId)).Returns(Task.CompletedTask);
-        _boardsRepo.Setup(r => r.GetByProjectIdRaw(ProjectId)).ReturnsAsync(board);
+        await SeedBoard(columns: []);
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.Delete(ProjectId, ColumnId));
-
-        _columnsRepo.Verify(r => r.Remove(It.IsAny<BoardColumn>()), Times.Never);
     }
 
     [Fact]
     public async Task Reorder_SetsFinalPositions()
     {
-        var col1 = MakeColumn(id: 1, position: 1);
-        var col2 = MakeColumn(id: 2, position: 2);
-        var col3 = MakeColumn(id: 3, position: 3);
-        var board = MakeBoard(columns: [col1, col2, col3]);
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId)).Returns(Task.CompletedTask);
-        _boardsRepo.Setup(r => r.GetByProjectIdRaw(ProjectId)).ReturnsAsync(board);
+        var col1 = new BoardColumn { Id = 1, Name = "C1", Description = null, Position = 1, Color = Color.Blue, BoardId = BoardId, Cards = [] };
+        var col2 = new BoardColumn { Id = 2, Name = "C2", Description = null, Position = 2, Color = Color.Blue, BoardId = BoardId, Cards = [] };
+        var col3 = new BoardColumn { Id = 3, Name = "C3", Description = null, Position = 3, Color = Color.Blue, BoardId = BoardId, Cards = [] };
+        await SeedBoard(columns: [col1, col2, col3]);
 
         await _service.Reorder(ProjectId, new MoveColumnRequest { ColumnIds = [3, 1, 2] });
 
-        Assert.Equal(1, col3.Position);
-        Assert.Equal(2, col1.Position);
-        Assert.Equal(3, col2.Position);
+        Assert.Equal(1, _db.BoardColumns.Find(3)!.Position);
+        Assert.Equal(2, _db.BoardColumns.Find(1)!.Position);
+        Assert.Equal(3, _db.BoardColumns.Find(2)!.Position);
     }
 
     [Fact]
     public async Task Reorder_Throws_WhenNotProjectLead()
     {
-        var board = MakeBoard(columns: []);
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId)).Returns(Task.CompletedTask);
-        _boardsRepo.Setup(r => r.GetByProjectIdRaw(ProjectId)).ReturnsAsync(board);
+        await SeedBoard();
         _authGuard.Setup(g => g.Authorize(It.IsAny<Board>(), It.IsAny<IAuthorizationRequirement>()))
             .ThrowsAsync(new ForbiddenException("Not lead"));
 

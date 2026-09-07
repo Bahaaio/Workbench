@@ -1,55 +1,66 @@
+using Microsoft.EntityFrameworkCore;
+using Workbench.Common.Extensions;
+using Workbench.Data;
 using Workbench.Modules.Attachments.Services;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Dtos;
 using Workbench.Modules.Issues.Dtos.Requests;
+using Workbench.Modules.Issues.Extensions;
 using Workbench.Modules.Issues.Mappers;
 using Workbench.Modules.Issues.Models;
-using Workbench.Modules.Issues.Repositories;
-using Workbench.Modules.Projects.Repositories;
+using Workbench.Modules.Projects.Models;
 
 namespace Workbench.Modules.Issues.Services.Implementations;
 
 public class IssuesService : IIssuesService
 {
+    private readonly AppDbContext _db;
     private readonly IAttachmentsService<Issue> _attachmentsService;
     private readonly IAuthorizationGuard _authGuard;
-    private readonly IIssuesRepository _issuesRepository;
     private readonly ILogger<IssuesService> _logger;
-    private readonly IProjectsRepository _projectsRepository;
     private readonly ICurrentUser _user;
 
-    public IssuesService(IIssuesRepository issuesRepository,
+    public IssuesService(AppDbContext dbContext,
         ICurrentUser user, IAuthorizationGuard authGuard, ILogger<IssuesService> logger,
-        IAttachmentsService<Issue> attachmentsService, IProjectsRepository projectsRepository)
+        IAttachmentsService<Issue> attachmentsService)
     {
-        _issuesRepository = issuesRepository;
+        _db = dbContext;
         _user = user;
         _authGuard = authGuard;
         _logger = logger;
         _attachmentsService = attachmentsService;
-        _projectsRepository = projectsRepository;
     }
 
     public async Task<IssueDto> GetById(int projectId, int issueId)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        return (await _issuesRepository.GetByIdAsync(issueId)).ToDto();
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        return (await _db.Issues.FindOrThrowAsync(issueId)).ToDto();
     }
 
     public async Task<List<IssueDto>> GetAll(int projectId, IssueQuery issueQuery)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        return await _issuesRepository.GetAllAsync(projectId, issueQuery);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        return await _db.Issues
+            .AsNoTracking()
+            .Where(i => i.ProjectId == projectId)
+            .ApplyFilters(issueQuery)
+            .Select(IssueMapper.ToDtoExpression)
+            .ToListAsync();
     }
 
     public Task<List<IssueDto>> GetCurrentUserIssues(IssueQuery issueQuery) =>
-        _issuesRepository.GetAllByAuthorAsync(_user.Id, issueQuery);
+        _db.Issues
+            .AsNoTracking()
+            .ApplyFilters(issueQuery)
+            .Where(i => i.AuthorId == _user.Id)
+            .Select(IssueMapper.ToDtoExpression)
+            .ToListAsync();
 
     public async Task<IssueDto> Create(int projectId, CreateIssueRequest request)
     {
-        var project = await _projectsRepository.GetByIdAsync(projectId);
+        var project = await _db.Projects.FindOrThrowAsync(projectId);
 
         var issue = new Issue
         {
@@ -60,40 +71,40 @@ public class IssuesService : IIssuesService
             Project = project
         };
 
-        _issuesRepository.Add(issue);
-        await _issuesRepository.SaveChangesAsync();
+        _db.Issues.Add(issue);
+        await _db.SaveChangesAsync();
 
         _logger.LogInformation("User {userId} created issue {issueId}", _user.Id, issue.Id);
 
-        await _issuesRepository.LoadAuthorAsync(issue);
+        await _db.Entry(issue).Reference(i => i.Author).LoadAsync();
         return issue.ToDto();
     }
 
     public async Task<IssueDto> Update(int projectId, int issueId, UpdateIssueRequest request)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        var issue = await _issuesRepository.GetByIdAsync(issueId);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        var issue = await _db.Issues.FindOrThrowAsync(issueId);
 
         await _authGuard.AuthorizeProjectMember(issue);
 
         issue.Title = request.Title;
         issue.Description = request.Description;
 
-        await _issuesRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
         return issue.ToDto();
     }
 
     public async Task Delete(int projectId, int issueId)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        var issue = await _issuesRepository.GetByIdAsync(issueId);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        var issue = await _db.Issues.FindOrThrowAsync(issueId);
 
         await _authGuard.AuthorizeOwnerOrProjectLead(issue);
 
         await _attachmentsService.DeleteAll(issueId);
-        _issuesRepository.Remove(issue);
+        _db.Issues.Remove(issue);
 
-        await _issuesRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
 
         _logger.LogInformation("User {userId} deleted issue {issueId}", _user.Id, issueId);
     }

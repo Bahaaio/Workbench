@@ -1,5 +1,3 @@
-using Workbench.Modules.Tags.Repositories;
-using Workbench.Modules.Tags.Repositories.Implementations;
 using Workbench.Modules.Tags.Services;
 using Workbench.Modules.Tags.Services.Implementations;
 
@@ -12,7 +10,6 @@ public static class DependencyInjection
         public void AddTagsModule()
         {
             services.AddScoped<ITagsService, TagsService>();
-            services.AddScoped<ITagsRepository, TagsRepository>();
         }
     }
 }

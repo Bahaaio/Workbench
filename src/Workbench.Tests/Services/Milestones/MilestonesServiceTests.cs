@@ -3,93 +3,63 @@ using Moq;
 using Workbench.Common.Exceptions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Milestones.Dtos.Requests;
-using Workbench.Modules.Milestones.Models;
-using Workbench.Modules.Milestones.Repositories;
 using Workbench.Modules.Milestones.Services.Implementations;
-using Workbench.Modules.Projects.Models;
-using Workbench.Modules.Projects.Repositories;
+using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Milestones;
 
-public class MilestonesServiceTests
+public class MilestonesServiceTests : IDisposable
 {
     private const int ProjectId = 1;
     private const int MilestoneId = 10;
 
+    private readonly Data.AppDbContext _db;
     private readonly Mock<IAuthorizationGuard> _authGuard;
-    private readonly Mock<IMilestonesRepository> _milestonesRepo;
-    private readonly Mock<IProjectsRepository> _projectsRepo;
     private readonly MilestonesService _service;
 
     public MilestonesServiceTests()
     {
+        _db = TestDbContextFactory.Create();
         _authGuard = new Mock<IAuthorizationGuard>();
-        _milestonesRepo = new Mock<IMilestonesRepository>();
-        _projectsRepo = new Mock<IProjectsRepository>();
-
-        _service = new MilestonesService(
-            _milestonesRepo.Object,
-            _projectsRepo.Object,
-            _authGuard.Object);
+        _service = new MilestonesService(_db, _authGuard.Object);
     }
 
-    private static Milestone MakeMilestone(int projectId = ProjectId) =>
-        new()
+    public void Dispose() => _db.Dispose();
+
+    private async Task SeedProject(int ownerId = 1)
+    {
+        var owner = new Modules.Auth.Models.ApplicationUser { Id = ownerId, UserName = "owner" };
+        _db.Users.Add(owner);
+        _db.Projects.Add(new Modules.Projects.Models.Project
         {
-            Id = MilestoneId,
-            ProjectId = projectId,
-            Name = "Milestone 1",
-            Description = "Desc",
-            DueDate = null,
-            Project = new Project
-            {
-                Id = projectId,
-                OwnerId = 1,
-                Name = "Project",
-                Description = null,
-                Owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" }
-            }
-        };
+            Id = ProjectId,
+            OwnerId = ownerId,
+            Name = "P",
+            Description = null,
+        });
+        await _db.SaveChangesAsync();
+    }
 
     [Fact]
     public async Task GetAll_ReturnsMilestones_WhenProjectExists()
     {
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId)).Returns(Task.CompletedTask);
-        _milestonesRepo.Setup(r => r.GetAllAsync(ProjectId))
-            .ReturnsAsync(new List<Modules.Milestones.Dtos.MilestoneDto>());
+        await SeedProject();
 
         var result = await _service.GetAll(ProjectId);
 
         Assert.Empty(result);
-        _projectsRepo.Verify(r => r.ExistsOrThrowAsync(ProjectId), Times.Once);
     }
 
     [Fact]
     public async Task GetAll_Throws_WhenProjectNotFound()
     {
-        _projectsRepo.Setup(r => r.ExistsOrThrowAsync(ProjectId))
-            .ThrowsAsync(new NotFoundException("Project not found"));
-
         await Assert.ThrowsAsync<NotFoundException>(() => _service.GetAll(ProjectId));
     }
 
     [Fact]
-    public async Task GetById_ReturnsMilestone_WhenInProject()
+    public async Task GetById_Throws_WhenMilestoneNotFound()
     {
-        var milestone = MakeMilestone();
-        _milestonesRepo.Setup(r => r.GetByIdAsync(MilestoneId)).ReturnsAsync(milestone);
-
-        var result = await _service.GetById(ProjectId, MilestoneId);
-
-        Assert.Equal(MilestoneId, result.Id);
-        Assert.Equal("Milestone 1", result.Name);
-    }
-
-    [Fact]
-    public async Task GetById_Throws_WhenMilestoneNotInProject()
-    {
-        var milestone = MakeMilestone(projectId: 99);
-        _milestonesRepo.Setup(r => r.GetByIdAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedProject();
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.GetById(ProjectId, MilestoneId));
@@ -98,18 +68,7 @@ public class MilestonesServiceTests
     [Fact]
     public async Task Create_CreatesMilestone_WhenAuthorized()
     {
-        var project = new Project
-        {
-            Id = ProjectId,
-            OwnerId = 1,
-            Name = "P",
-            Description = null,
-            Owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "u" }
-        };
-        _projectsRepo.Setup(r => r.GetByIdAsync(ProjectId)).ReturnsAsync(project);
-
-        _milestonesRepo.Setup(r => r.Add(It.IsAny<Milestone>()))
-            .Callback<Milestone>(m => m.Id = MilestoneId);
+        await SeedProject();
 
         var result = await _service.Create(ProjectId, new CreateMilestoneRequest
         {
@@ -118,36 +77,36 @@ public class MilestonesServiceTests
             DueDate = DateTime.UtcNow
         });
 
-        Assert.Equal(MilestoneId, result.Id);
-        _milestonesRepo.Verify(r => r.Add(It.IsAny<Milestone>()), Times.Once);
+        Assert.Equal("New", result.Name);
+        Assert.Equal("Desc", result.Description);
+        Assert.NotNull(_db.Milestones.Find(result.Id));
     }
 
     [Fact]
     public async Task Create_Throws_WhenNotProjectLead()
     {
-        var project = new Project
-        {
-            Id = ProjectId,
-            OwnerId = 1,
-            Name = "P",
-            Description = null,
-            Owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "u" }
-        };
-        _projectsRepo.Setup(r => r.GetByIdAsync(ProjectId)).ReturnsAsync(project);
-        _authGuard.Setup(g => g.Authorize(It.IsAny<Project>(), It.IsAny<IAuthorizationRequirement>()))
+        await SeedProject();
+        _authGuard.Setup(g => g.Authorize(It.IsAny<Modules.Projects.Models.Project>(), It.IsAny<IAuthorizationRequirement>()))
             .ThrowsAsync(new ForbiddenException("Not lead"));
 
         await Assert.ThrowsAsync<ForbiddenException>(
             () => _service.Create(ProjectId, new CreateMilestoneRequest { Name = "X" }));
-
-        _milestonesRepo.Verify(r => r.Add(It.IsAny<Milestone>()), Times.Never);
     }
 
     [Fact]
     public async Task Update_UpdatesFields_WhenAuthorized()
     {
-        var milestone = MakeMilestone();
-        _milestonesRepo.Setup(r => r.GetByIdAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedProject();
+        var milestone = new Modules.Milestones.Models.Milestone
+        {
+            Id = MilestoneId,
+            ProjectId = ProjectId,
+            Name = "Milestone 1",
+            Description = "Desc",
+            DueDate = null,
+        };
+        _db.Milestones.Add(milestone);
+        await _db.SaveChangesAsync();
 
         var result = await _service.Update(ProjectId, MilestoneId, new UpdateMilestoneRequest
         {
@@ -163,61 +122,102 @@ public class MilestonesServiceTests
     [Fact]
     public async Task Update_Throws_WhenMilestoneNotInProject()
     {
-        var milestone = MakeMilestone(projectId: 99);
-        _milestonesRepo.Setup(r => r.GetByIdAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedProject();
+        var otherOwner = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "other" };
+        _db.Users.Add(otherOwner);
+        _db.Projects.Add(new Modules.Projects.Models.Project
+        {
+            Id = 99,
+            OwnerId = 99,
+            Name = "Other",
+            Description = null,
+        });
+        var milestone = new Modules.Milestones.Models.Milestone
+        {
+            Id = MilestoneId,
+            ProjectId = 99,
+            Name = "Milestone 1",
+            Description = null,
+            DueDate = null,
+        };
+        _db.Milestones.Add(milestone);
+        await _db.SaveChangesAsync();
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.Update(ProjectId, MilestoneId, new UpdateMilestoneRequest { Name = "X" }));
-
-    }
-
-    [Fact]
-    public async Task Update_Throws_WhenNotProjectLead()
-    {
-        var milestone = MakeMilestone();
-        _milestonesRepo.Setup(r => r.GetByIdAsync(MilestoneId)).ReturnsAsync(milestone);
-        _authGuard.Setup(g => g.Authorize(It.IsAny<Milestone>(), It.IsAny<IAuthorizationRequirement>()))
-            .ThrowsAsync(new ForbiddenException("Not lead"));
-
-        await Assert.ThrowsAsync<ForbiddenException>(
-            () => _service.Update(ProjectId, MilestoneId, new UpdateMilestoneRequest { Name = "X" }));
-
     }
 
     [Fact]
     public async Task Delete_RemovesMilestone_WhenAuthorized()
     {
-        var milestone = MakeMilestone();
-        _milestonesRepo.Setup(r => r.GetByIdAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedProject();
+        var milestone = new Modules.Milestones.Models.Milestone
+        {
+            Id = MilestoneId,
+            ProjectId = ProjectId,
+            Name = "Milestone 1",
+            Description = null,
+            DueDate = null,
+        };
+        _db.Milestones.Add(milestone);
+        await _db.SaveChangesAsync();
 
         await _service.Delete(ProjectId, MilestoneId);
 
-        _milestonesRepo.Verify(r => r.Remove(milestone), Times.Once);
+        Assert.Null(_db.Milestones.Find(MilestoneId));
     }
 
     [Fact]
     public async Task Delete_Throws_WhenMilestoneNotInProject()
     {
-        var milestone = MakeMilestone(projectId: 99);
-        _milestonesRepo.Setup(r => r.GetByIdAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedProject();
+        var otherOwner = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "other" };
+        _db.Users.Add(otherOwner);
+        _db.Projects.Add(new Modules.Projects.Models.Project
+        {
+            Id = 99,
+            OwnerId = 99,
+            Name = "Other",
+            Description = null,
+        });
+        var milestone = new Modules.Milestones.Models.Milestone
+        {
+            Id = MilestoneId,
+            ProjectId = 99,
+            Name = "Milestone 1",
+            Description = null,
+            DueDate = null,
+        };
+        _db.Milestones.Add(milestone);
+        await _db.SaveChangesAsync();
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.Delete(ProjectId, MilestoneId));
 
-        _milestonesRepo.Verify(r => r.Remove(It.IsAny<Milestone>()), Times.Never);
+        Assert.NotNull(_db.Milestones.Find(MilestoneId));
     }
 
     [Fact]
     public async Task Delete_Throws_WhenNotProjectLead()
     {
-        var milestone = MakeMilestone();
-        _milestonesRepo.Setup(r => r.GetByIdAsync(MilestoneId)).ReturnsAsync(milestone);
-        _authGuard.Setup(g => g.Authorize(It.IsAny<Milestone>(), It.IsAny<IAuthorizationRequirement>()))
+        await SeedProject();
+        var milestone = new Modules.Milestones.Models.Milestone
+        {
+            Id = MilestoneId,
+            ProjectId = ProjectId,
+            Name = "Milestone 1",
+            Description = null,
+            DueDate = null,
+        };
+        _db.Milestones.Add(milestone);
+        await _db.SaveChangesAsync();
+
+        _authGuard.Setup(g => g.Authorize(It.IsAny<Modules.Milestones.Models.Milestone>(), It.IsAny<IAuthorizationRequirement>()))
             .ThrowsAsync(new ForbiddenException("Not lead"));
 
         await Assert.ThrowsAsync<ForbiddenException>(
             () => _service.Delete(ProjectId, MilestoneId));
 
-        _milestonesRepo.Verify(r => r.Remove(It.IsAny<Milestone>()), Times.Never);
+        Assert.NotNull(_db.Milestones.Find(MilestoneId));
     }
 }

@@ -1,5 +1,3 @@
-using Workbench.Modules.Projects.Invites.Repositories;
-using Workbench.Modules.Projects.Invites.Repositories.Implementations;
 using Workbench.Modules.Projects.Invites.Services;
 using Workbench.Modules.Projects.Invites.Services.Implementations;
 
@@ -13,7 +11,6 @@ public static class DependencyInjection
         {
             services.AddScoped<IProjectInvitesService, ProjectInvitesService>();
             services.AddSingleton<ITokensService, TokensService>();
-            services.AddScoped<IProjectInvitesRepository, ProjectInvitesRepository>();
         }
     }
 }

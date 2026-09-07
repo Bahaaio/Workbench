@@ -1,25 +1,28 @@
+using Microsoft.EntityFrameworkCore;
 using Workbench.Common.Exceptions;
+using Workbench.Common.Extensions;
+using Workbench.Data;
 using Workbench.Modules.Attachments.Dtos;
-using Workbench.Modules.Attachments.Repositories;
+using Workbench.Modules.Attachments.Models;
 using Workbench.Modules.Storage.Services;
 
 namespace Workbench.Modules.Attachments.Services.Implementations;
 
 public class AttachmentsReader : IAttachmentsReader
 {
-    private readonly IAttachmentsReadRepository _attachmentsReadRepository;
+    private readonly AppDbContext _db;
     private readonly IStorageService _storageService;
 
     public AttachmentsReader(IStorageService storageService,
-        IAttachmentsReadRepository attachmentsReadRepository)
+        AppDbContext db)
     {
         _storageService = storageService;
-        _attachmentsReadRepository = attachmentsReadRepository;
+        _db = db;
     }
 
     public async Task<AttachmentResult> Get(Guid attachmentId)
     {
-        var attachment = await _attachmentsReadRepository.GetByIdAsync(attachmentId);
+        var attachment = await _db.Attachments.FindOrThrowAsync(attachmentId);
         var stream = await _storageService.Load(attachmentId.ToString());
 
         if (stream is null)

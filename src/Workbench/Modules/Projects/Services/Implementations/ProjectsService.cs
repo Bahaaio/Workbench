@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using Workbench.Data;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
@@ -8,37 +10,47 @@ using Workbench.Modules.Projects.Enums;
 using Workbench.Modules.Projects.Mappers;
 using Workbench.Modules.Projects.Memberships.Services;
 using Workbench.Modules.Projects.Models;
-using Workbench.Modules.Projects.Repositories;
 
 namespace Workbench.Modules.Projects.Services.Implementations;
 
 public class ProjectsService : IProjectsService
 {
+    private readonly AppDbContext _db;
     private readonly IAuthorizationGuard _authGuard;
     private readonly IBoardsService _boardsService;
     private readonly IProjectMembershipsService _projectMembershipsService;
-    private readonly IProjectsRepository _projectsRepository;
     private readonly ICurrentUser _user;
 
-    public ProjectsService(IProjectsRepository projectsRepository,
+    public ProjectsService(AppDbContext dbContext,
         IProjectMembershipsService projectMembershipsService,
         IBoardsService boardsService,
         ICurrentUser user, IAuthorizationGuard authGuard)
     {
-        _projectsRepository = projectsRepository;
+        _db = dbContext;
         _projectMembershipsService = projectMembershipsService;
         _boardsService = boardsService;
         _user = user;
         _authGuard = authGuard;
     }
 
-    public Task<List<ProjectDto>> GetAll() => _projectsRepository.GetAllAsync();
+    public Task<List<ProjectDto>> GetAll() =>
+        _db.Projects.Select(ProjectMapper.ToDtoExpression).ToListAsync();
 
     public Task<List<ProjectDto>> GetCurrentUserProjects() =>
-        _projectsRepository.GetAllByUserIdAsync(_user.Id);
+        _db.Projects
+            .Where(p => p.OwnerId == _user.Id || p.Members.Any(m => m.UserId == _user.Id))
+            .Select(ProjectMapper.ToDtoExpression)
+            .ToListAsync();
 
-    public async Task<ProjectDto> GetById(int id) =>
-        (await _projectsRepository.GetByIdAsync(id)).ToDto();
+    public async Task<ProjectDto> GetById(int id)
+    {
+        var project = await _db.Projects
+            .Include(p => p.Owner)
+            .SingleOrDefaultAsync(p => p.Id == id)
+            ?? throw new Common.Exceptions.NotFoundException($"Project with id {id} not found");
+
+        return project.ToDto();
+    }
 
     public async Task<ProjectDto> Create(CreateProjectRequest request)
     {
@@ -49,36 +61,44 @@ public class ProjectsService : IProjectsService
             Description = request.Description
         };
 
-        _projectsRepository.Add(project);
-        await _projectsRepository.SaveChangesAsync();
+        _db.Projects.Add(project);
+        await _db.SaveChangesAsync();
 
         await _projectMembershipsService.AddMember(project.Id, _user.Id, ProjectMemberRole.Lead);
         await _boardsService.CreateEmpty(project.Id);
 
-        await _projectsRepository.LoadOwnerAsync(project);
+        await _db.Entry(project).Reference(p => p.Owner).LoadAsync();
 
         return project.ToDto();
     }
 
     public async Task<ProjectDto> Update(int id, UpdateProjectRequest request)
     {
-        var project = await _projectsRepository.GetByIdAsync(id);
+        var project = await _db.Projects
+            .Include(p => p.Owner)
+            .SingleOrDefaultAsync(p => p.Id == id)
+            ?? throw new Common.Exceptions.NotFoundException($"Project with id {id} not found");
+
         await _authGuard.AuthorizeOwner(project);
 
         project.Name = request.Name;
         if (request.Description is not null) project.Description = request.Description;
 
-        await _projectsRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
 
         return project.ToDto();
     }
 
     public async Task Delete(int id)
     {
-        var project = await _projectsRepository.GetByIdAsync(id);
+        var project = await _db.Projects
+            .Include(p => p.Owner)
+            .SingleOrDefaultAsync(p => p.Id == id)
+            ?? throw new Common.Exceptions.NotFoundException($"Project with id {id} not found");
+
         await _authGuard.AuthorizeOwner(project);
 
-        _projectsRepository.Remove(project);
-        await _projectsRepository.SaveChangesAsync();
+        _db.Projects.Remove(project);
+        await _db.SaveChangesAsync();
     }
 }

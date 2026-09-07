@@ -21,7 +21,10 @@ public class AppDbContext(DbContextOptions options)
     public DbSet<Project> Projects { get; set; }
     public DbSet<ProjectMembership> ProjectMemberships { get; set; }
     public DbSet<Board> Boards { get; set; }
+    public DbSet<BoardColumn> BoardColumns { get; set; }
+    public DbSet<BoardCard> BoardCards { get; set; }
     public DbSet<Milestone> Milestones { get; set; }
+    public DbSet<MilestoneItem> MilestoneItems { get; set; }
     public DbSet<Issue> Issues { get; set; }
     public DbSet<Attachment> Attachments { get; set; }
     public DbSet<Comment> Comments { get; set; }

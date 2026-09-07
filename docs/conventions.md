@@ -16,7 +16,6 @@ Workbench/
 │   └── Exceptions|Options|Models|Extensions
 ├── Data/
 │   ├── Migrations/           # EF Core migrations
-│   ├── Persistence/          # base repository + unit of work
 │   └── AppDbContext.cs       # single DbContext (central, never per-module)
 ├── ClientServices/           # Blazor-side clients (Iface + Implementations/)
 ├── Components/               # Blazor shell: App, Routes, Layout/, Pages/<Feature>/
@@ -44,8 +43,6 @@ Modules/<Slice>/
 ├── Configuration/        # EF Core IEntityTypeConfiguration<T>
 ├── Services/             # IXxxService interfaces
 │   └── Implementations/  # XxxService classes
-├── Repositories/         # IXxxRepository interfaces
-│   └── Implementations/  # XxxRepository classes
 ├── Mappers/              # entity→DTO mapping
 ├── Extensions/           # slice-only query/helper extensions
 ├── Controllers/
@@ -72,7 +69,6 @@ Microsoft C# conventions (PascalCase types/members, camelCase locals,
 | Service       | `IXxxService` / `XxxService`                                               | `IIssuesService` / `IssuesService`               |
 | EF config     | `XxxConfiguration`                                                         | `IssueConfiguration`                             |
 | Mapper        | `XxxMapper`                                                                | `CommentMapper`                                  |
-| Repository    | `IXxxRepository` / `XxxRepository`                                         | `IIssuesRepository` / `IssuesRepository`         |
 | Razor page    | `<Plural>` / `<Singular>Details` / `New<Singular>` / `<Qualifier><Plural>` | `Issues`, `IssueDetails`, `NewIssue`, `MyIssues` |
 | Dialog        | `<Purpose>Dialog`                                                          | `CommentEditDialog`                              |
 | Test          | `Method_ExpectedBehavior_WhenCondition`                                    | `GetAll_ReturnsOrderedComments_WhenTicketExists` |
@@ -96,77 +92,6 @@ No abbreviations in slice names (`Authentication`, not `Auth`).
   `ForbiddenException`, `BadRequestException`, `ConflictException`…
 - `GlobalExceptionHandler` converts them to ProblemDetails.
 - Missing rows: `await _db.Issues.FindOrThrowAsync(id)` (extension on DbSet).
-
-## Repository pattern
-
-### Base layer (`Data/Persistence/`)
-
-```
-Data/Persistence/
-├── IRepository.cs              # IRepository<TEntity, TKey>
-├── Implementations/
-│   └── Repository.cs           # Repository<TEntity, TKey> (abstract base)
-├── IUnitOfWork.cs              # Task SaveChangesAsync()
-└── Implementations/
-    └── UnitOfWork.cs
-```
-
-Base `IRepository<TEntity, TKey>` — minimal, covers only single-entity operations:
-
-```csharp
-public interface IRepository<TEntity, TKey>
-    where TEntity : class, IEntity<TKey>
-    where TKey : notnull
-{
-    Task<TEntity?> FindAsync(TKey id);           // returns null if missing
-    Task<TEntity> GetByIdAsync(TKey id);          // throws NotFoundException
-    TEntity Add(TEntity entity);
-    Task ExistsOrThrowAsync(TKey id);             // throws NotFoundException
-    TEntity Update(TEntity entity);
-    void Remove(TEntity entity);
-}
-```
-
-Only `FindAsync` and `GetByIdAsync` are `virtual` (override for eager loading). `Add`, `ExistsOrThrowAsync`, `Update`, `Remove` are not virtual. The base class holds a `protected DbSet<TEntity>`.
-
-### Slice layer (`Modules/<Slice>/Repositories/`)
-
-Each slice defines its own interface extending the base, adding query methods
-that return DTOs via SQL-side projection:
-
-```
-Modules/<Slice>/Repositories/
-├── IIssuesRepository.cs            # extends IRepository<Issue, int>
-└── Implementations/
-    └── IssuesRepository.cs         # extends Repository<Issue, int>
-```
-
-Example (`ICommentsRepository`):
-
-```csharp
-public interface ICommentsRepository : IRepository<Comment, int>
-{
-    Task<List<CommentDto>> GetAllByIssueIdAsync(int issueId);
-}
-```
-
-### Naming conventions
-
-| Pattern                   | Purpose                                                | Example                         |
-| ------------------------- | ------------------------------------------------------ | ------------------------------- |
-| `GetAllBy<X>Async(value)` | Filtered list, projected to DTO in SQL                 | `GetAllByIssueIdAsync(issueId)` |
-| `FindForUpdateAsync(id)`  | Tracked entity with nav-props loaded (for mutations)   | `FindForUpdateAsync(id)`        |
-| `FindWith<X>Async(id)`    | Tracked entity with specific nav-props                 | `FindWithTagsAsync(id)`         |
-| `Load<X>Async(entity)`    | Load nav-prop on existing tracked entity               | `LoadAuthorAsync(issue)`        |
-| `GetByIdAsync(id)`        | Inherited — tracked entity, throws `NotFoundException` | base                            |
-| `ExistsOrThrowAsync(id)`  | Inherited — throws `NotFoundException`                 | base                            |
-
-### Rules
-
-- **Read methods** return DTOs via SQL-side projection (`.Select(Mapper.ToDtoExpression)`).
-- **Write/mutation methods** use tracked `GetByIdAsync` or `FindForUpdateAsync`.
-- Slice repos are registered as scoped: `services.AddScoped<IIssuesRepository, IssuesRepository>()`.
-- Slice-aligned plural names: `IIssuesRepository`, `ICommentsRepository`, `IProjectsRepository`.
 
 ## Authorization
 
@@ -241,8 +166,13 @@ public interface ICommentsRepository : IRepository<Comment, int>
 ## Testing
 
 xUnit + Moq + EF Core SQLite in-memory. Tests mirror slice namespaces.
-Mock repositories/guards; keep SQLite only where SQL behavior is the subject
-(e.g., repository tests). Every bug fix earns a regression test when practical.
+
+- Services receive a real `AppDbContext` backed by SQLite in-memory (via
+  `TestDbContextFactory.Create()`) and mocked `IAuthorizationGuard`,
+  `ICurrentUser`, and other interface dependencies.
+- **No repository mocking** — services query the real in-memory DB.
+- Seed test data directly into the context; assert on DB state after operations.
+- Every bug fix earns a regression test when practical.
 
 ## Git & docs
 

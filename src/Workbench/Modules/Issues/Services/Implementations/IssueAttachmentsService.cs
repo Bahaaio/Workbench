@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using Workbench.Data;
 using Workbench.Modules.Attachments.Dtos;
 using Workbench.Modules.Attachments.Options;
-using Workbench.Modules.Attachments.Repositories;
 using Workbench.Modules.Attachments.Services;
 using Workbench.Modules.Attachments.Services.Implementations;
 using Workbench.Modules.Auth.Services;
@@ -21,13 +20,12 @@ public class IssueAttachmentsService : AttachmentsService<Issue, IssueAttachment
     public IssueAttachmentsService(
         IStorageService storageService,
         AppDbContext dbContext,
-        IAttachmentsRepository<IssueAttachment> attachmentsRepository,
         ICurrentUser user,
         ILogger<IssueAttachmentsService> logger,
         IAttachmentValidationService attachmentValidationService,
         IAuthorizationGuard authGuard,
         IOptions<IssueAttachmentOptions> attachmentOptions)
-        : base(storageService, dbContext, attachmentsRepository, user, logger,
+        : base(storageService, dbContext, user, logger,
             attachmentValidationService)
     {
         _authGuard = authGuard;

@@ -1,38 +1,33 @@
+using Microsoft.EntityFrameworkCore;
 using Workbench.Common.Exceptions;
+using Workbench.Common.Extensions;
+using Workbench.Data;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Kanban.Dtos;
 using Workbench.Modules.Kanban.Dtos.Requests;
 using Workbench.Modules.Kanban.Mappers;
 using Workbench.Modules.Kanban.Models;
-using Workbench.Modules.Kanban.Repositories;
-using Workbench.Modules.Projects.Repositories;
+using Workbench.Modules.Projects.Models;
 
 namespace Workbench.Modules.Kanban.Services.Implementations;
 
 public class BoardCardsService : IBoardCardsService
 {
     private const int TempPositionOffset = 1000;
+    private readonly AppDbContext _db;
     private readonly IAuthorizationGuard _authGuard;
-    private readonly IBoardsRepository _boardsRepository;
-    private readonly IBoardCardsRepository _cardsRepository;
-    private readonly IProjectsRepository _projectsRepository;
-    public BoardCardsService(
-        IBoardsRepository boardsRepository,
-        IBoardCardsRepository cardsRepository,
-        IProjectsRepository projectsRepository,
-        IAuthorizationGuard authGuard)
+
+    public BoardCardsService(AppDbContext dbContext, IAuthorizationGuard authGuard)
     {
-        _boardsRepository = boardsRepository;
-        _cardsRepository = cardsRepository;
-        _projectsRepository = projectsRepository;
+        _db = dbContext;
         _authGuard = authGuard;
     }
 
     public async Task<CardDto> Add(int projectId, CreateCardRequest request)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        var board = await _boardsRepository.GetByProjectIdRaw(projectId);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        var board = await GetBoardRaw(projectId);
         await _authGuard.AuthorizeProjectLead(board);
 
         if (board.Columns.SelectMany(c => c.Cards).Any(c => c.IssueId == request.IssueId))
@@ -52,28 +47,32 @@ public class BoardCardsService : IBoardCardsService
             Position = maxPosition + 1
         };
 
-        _cardsRepository.Add(card);
-        await _boardsRepository.SaveChangesAsync();
+        _db.BoardCards.Add(card);
+        await _db.SaveChangesAsync();
 
-        await _cardsRepository.LoadIssueAsync(card);
+        await _db.Entry(card).Reference(c => c.Issue).LoadAsync();
         return card.ToDto();
     }
 
     public async Task Delete(int projectId, int cardId)
     {
-        var project = await _projectsRepository.GetByIdAsync(projectId);
-        await _authGuard.AuthorizeProjectLead(project);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        var board = await GetBoardRaw(projectId);
+        await _authGuard.AuthorizeProjectLead(board);
 
-        var card = await _cardsRepository.GetByIdAsync(cardId);
-        _cardsRepository.Remove(card);
+        var card = board.Columns
+                       .SelectMany(c => c.Cards)
+                       .FirstOrDefault(c => c.Id == cardId)
+                   ?? throw new NotFoundException($"Card {cardId} not found in project {projectId}");
 
-        await _boardsRepository.SaveChangesAsync();
+        _db.BoardCards.Remove(card);
+        await _db.SaveChangesAsync();
     }
 
     public async Task<CardDto> Move(int projectId, int cardId, MoveCardRequest request)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        var board = await _boardsRepository.GetByProjectIdRaw(projectId);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        var board = await GetBoardRaw(projectId);
         await _authGuard.AuthorizeProjectLead(board);
 
         var card = board.Columns
@@ -87,7 +86,6 @@ public class BoardCardsService : IBoardCardsService
 
         var sourceColumn = board.Columns.First(c => c.Cards.Any(x => x.Id == cardId));
 
-        // Remove from source: reorder remaining cards with temp positions
         var sourceCardIds = sourceColumn.Cards
             .Where(c => c.Id != cardId)
             .OrderBy(c => c.Position)
@@ -100,11 +98,9 @@ public class BoardCardsService : IBoardCardsService
             c.Position = TempPositionOffset + i + 1;
         }
 
-        // Move card to target
         card.ColumnId = request.ColumnId;
         card.BoardId = targetColumn.BoardId;
 
-        // Build target order with card inserted at position
         var targetCardIds = targetColumn.Cards
             .OrderBy(c => c.Position)
             .Select(c => c.Id)
@@ -113,7 +109,6 @@ public class BoardCardsService : IBoardCardsService
         var insertIndex = Math.Min(request.Position, targetCardIds.Count);
         targetCardIds.Insert(insertIndex, cardId);
 
-        // Set target existing cards to temp positions
         for (var i = 0; i < targetCardIds.Count; i++)
         {
             var c = targetColumn.Cards.FirstOrDefault(x => x.Id == targetCardIds[i]);
@@ -123,9 +118,8 @@ public class BoardCardsService : IBoardCardsService
                 card.Position = TempPositionOffset + i + 1;
         }
 
-        await _boardsRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
 
-        // Source final positions + target final positions in one save
         for (var i = 0; i < sourceCardIds.Count; i++)
         {
             var c = sourceColumn.Cards.First(x => x.Id == sourceCardIds[i]);
@@ -141,16 +135,16 @@ public class BoardCardsService : IBoardCardsService
                 card.Position = i + 1;
         }
 
-        await _boardsRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
 
-        await _cardsRepository.LoadIssueAsync(card);
+        await _db.Entry(card).Reference(c => c.Issue).LoadAsync();
         return card.ToDto();
     }
 
     public async Task Reorder(int projectId, int columnId, ReorderCardsRequest request)
     {
-        await _projectsRepository.ExistsOrThrowAsync(projectId);
-        var board = await _boardsRepository.GetByProjectIdRaw(projectId);
+        await _db.Projects.ExistsOrThrowAsync(projectId);
+        var board = await GetBoardRaw(projectId);
         await _authGuard.AuthorizeProjectLead(board);
 
         var column = board.Columns.FirstOrDefault(c => c.Id == columnId)
@@ -159,22 +153,27 @@ public class BoardCardsService : IBoardCardsService
 
         var ids = request.CardIds;
 
-        // set the positions to a high number to avoid conflicts
         for (var i = 0; i < ids.Count; i++)
         {
             var card = column.Cards.FirstOrDefault(c => c.Id == ids[i]);
             card?.Position = TempPositionOffset + i + 1;
         }
 
-        await _boardsRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
 
-        // reorder again to set the correct positions
         for (var i = 0; i < ids.Count; i++)
         {
             var card = column.Cards.FirstOrDefault(c => c.Id == ids[i]);
             card?.Position = i + 1;
         }
 
-        await _boardsRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
     }
+
+    private Task<Board> GetBoardRaw(int projectId) =>
+        _db.Boards
+            .Include(b => b.Columns)
+            .ThenInclude(c => c.Cards)
+            .ThenInclude(c => c.Issue)
+            .SingleAsync(b => b.ProjectId == projectId);
 }

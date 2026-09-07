@@ -1,5 +1,3 @@
-using Workbench.Modules.Kanban.Repositories;
-using Workbench.Modules.Kanban.Repositories.Implementations;
 using Workbench.Modules.Kanban.Services;
 using Workbench.Modules.Kanban.Services.Implementations;
 
@@ -14,10 +12,6 @@ public static class DependencyInjection
             services.AddScoped<IBoardsService, BoardsService>();
             services.AddScoped<IBoardColumnsService, BoardColumnsService>();
             services.AddScoped<IBoardCardsService, BoardCardsService>();
-
-            services.AddScoped<IBoardsRepository, BoardsRepository>();
-            services.AddScoped<IBoardColumnsRepository, BoardColumnsRepository>();
-            services.AddScoped<IBoardCardsRepository, BoardCardsRepository>();
         }
     }
 }

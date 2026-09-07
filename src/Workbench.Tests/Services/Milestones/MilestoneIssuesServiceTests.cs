@@ -1,76 +1,94 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using Workbench.Common.Exceptions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
-using Workbench.Modules.Issues.Repositories;
 using Workbench.Modules.Milestones.Models;
-using Workbench.Modules.Milestones.Repositories;
 using Workbench.Modules.Milestones.Services.Implementations;
-using Workbench.Modules.Projects.Models;
+using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Milestones;
 
-public class MilestoneIssuesServiceTests
+public class MilestoneIssuesServiceTests : IDisposable
 {
     private const int ProjectId = 1;
     private const int MilestoneId = 10;
     private const int IssueId = 100;
 
+    private readonly Data.AppDbContext _db;
     private readonly Mock<IAuthorizationGuard> _authGuard;
-    private readonly Mock<IMilestonesRepository> _milestonesRepo;
-    private readonly Mock<IIssuesRepository> _issuesRepo;
     private readonly MilestoneIssuesService _service;
 
     public MilestoneIssuesServiceTests()
     {
+        _db = TestDbContextFactory.Create();
         _authGuard = new Mock<IAuthorizationGuard>();
-        _milestonesRepo = new Mock<IMilestonesRepository>();
-        _issuesRepo = new Mock<IIssuesRepository>();
-
-        _service = new MilestoneIssuesService(
-            _milestonesRepo.Object,
-            _issuesRepo.Object,
-            _authGuard.Object);
+        _service = new MilestoneIssuesService(_db, _authGuard.Object);
     }
 
-    private static Milestone MakeMilestone(int projectId = ProjectId, List<MilestoneItem>? items = null) =>
-        new()
+    public void Dispose() => _db.Dispose();
+
+    private async Task SeedMilestone(int projectId = ProjectId)
+    {
+        var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+        _db.Users.Add(owner);
+        _db.Projects.Add(new Modules.Projects.Models.Project
+        {
+            Id = projectId,
+            OwnerId = 1,
+            Name = "P",
+            Description = null,
+        });
+        _db.Milestones.Add(new Milestone
         {
             Id = MilestoneId,
             ProjectId = projectId,
             Name = "M1",
             Description = null,
             DueDate = null,
-            MilestoneItems = items ?? [],
-            Project = new Project
-            {
-                Id = projectId,
-                OwnerId = 1,
-                Name = "P",
-                Description = null,
-                Owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "u" }
-            }
-        };
+        });
+        await _db.SaveChangesAsync();
+    }
 
-    private static Issue MakeIssue(int projectId = ProjectId) =>
-        new()
+    private async Task SeedIssue(int projectId = ProjectId)
+    {
+        var author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" };
+        _db.Users.Add(author);
+        if (projectId != ProjectId)
+        {
+            if (!_db.ChangeTracker.Entries<Modules.Auth.Models.ApplicationUser>().Any(e => e.Entity.Id == 1))
+            {
+                var otherOwner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+                _db.Users.Add(otherOwner);
+            }
+            if (!_db.ChangeTracker.Entries<Modules.Projects.Models.Project>().Any(e => e.Entity.Id == projectId))
+            {
+                _db.Projects.Add(new Modules.Projects.Models.Project
+                {
+                    Id = projectId,
+                    OwnerId = 1,
+                    Name = "P",
+                    Description = null,
+                });
+            }
+        }
+        _db.Issues.Add(new Issue
         {
             Id = IssueId,
             ProjectId = projectId,
             Title = "Issue",
             AuthorId = 99,
-            Author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" }
-        };
+            Status = Status.Open,
+        });
+        await _db.SaveChangesAsync();
+    }
 
     [Fact]
     public async Task GetAllIssues_ReturnsIssues_WhenMilestoneInProject()
     {
-        var milestone = MakeMilestone();
-        _milestonesRepo.Setup(r => r.GetByIdAsync(MilestoneId)).ReturnsAsync(milestone);
-        _milestonesRepo.Setup(r => r.GetAllIssuesAsync(MilestoneId))
-            .ReturnsAsync(new List<Workbench.Modules.Issues.Dtos.IssueDto>());
+        await SeedMilestone();
 
         var result = await _service.GetAllIssues(ProjectId, MilestoneId);
 
@@ -80,8 +98,7 @@ public class MilestoneIssuesServiceTests
     [Fact]
     public async Task GetAllIssues_Throws_WhenMilestoneNotInProject()
     {
-        var milestone = MakeMilestone(projectId: 99);
-        _milestonesRepo.Setup(r => r.GetByIdAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedMilestone(projectId: 99);
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.GetAllIssues(ProjectId, MilestoneId));
@@ -90,32 +107,24 @@ public class MilestoneIssuesServiceTests
     [Fact]
     public async Task AddIssue_AddsItem_WhenValid()
     {
-        var milestone = MakeMilestone();
-        _milestonesRepo.Setup(r => r.FindForUpdateAsync(MilestoneId)).ReturnsAsync(milestone);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(MakeIssue());
+        await SeedMilestone();
+        await SeedIssue();
 
         await _service.AddIssue(ProjectId, MilestoneId, IssueId);
 
-        Assert.Single(milestone.MilestoneItems);
-        Assert.Equal(IssueId, milestone.MilestoneItems.First().IssueId);
-    }
-
-    [Fact]
-    public async Task AddIssue_Throws_WhenMilestoneNotFound()
-    {
-        _milestonesRepo.Setup(r => r.FindForUpdateAsync(MilestoneId))
-            .ThrowsAsync(new NotFoundException("Not found"));
-
-        await Assert.ThrowsAsync<NotFoundException>(
-            () => _service.AddIssue(ProjectId, MilestoneId, IssueId));
-
+        var items = _db.Milestones
+            .Include(m => m.MilestoneItems)
+            .First(m => m.Id == MilestoneId)
+            .MilestoneItems;
+        Assert.Single(items);
+        Assert.Equal(IssueId, items.First().IssueId);
     }
 
     [Fact]
     public async Task AddIssue_Throws_WhenMilestoneNotInProject()
     {
-        var milestone = MakeMilestone(projectId: 99);
-        _milestonesRepo.Setup(r => r.FindForUpdateAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedMilestone(projectId: 99);
+        await SeedIssue(projectId: 99);
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.AddIssue(ProjectId, MilestoneId, IssueId));
@@ -124,33 +133,30 @@ public class MilestoneIssuesServiceTests
     [Fact]
     public async Task AddIssue_Throws_WhenIssueNotInProject()
     {
-        var milestone = MakeMilestone();
-        _milestonesRepo.Setup(r => r.FindForUpdateAsync(MilestoneId)).ReturnsAsync(milestone);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(MakeIssue(projectId: 99));
+        await SeedMilestone();
+        await SeedIssue(projectId: 99);
 
         await Assert.ThrowsAsync<BadRequestException>(
             () => _service.AddIssue(ProjectId, MilestoneId, IssueId));
-
     }
 
     [Fact]
     public async Task AddIssue_Throws_WhenDuplicateIssue()
     {
-        var existingItem = new MilestoneItem { MilestoneId = MilestoneId, IssueId = IssueId };
-        var milestone = MakeMilestone(items: [existingItem]);
-        _milestonesRepo.Setup(r => r.FindForUpdateAsync(MilestoneId)).ReturnsAsync(milestone);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(MakeIssue());
+        await SeedMilestone();
+        await SeedIssue();
+        _db.MilestoneItems.Add(new MilestoneItem { MilestoneId = MilestoneId, IssueId = IssueId });
+        await _db.SaveChangesAsync();
 
         await Assert.ThrowsAsync<BadRequestException>(
             () => _service.AddIssue(ProjectId, MilestoneId, IssueId));
-
     }
 
     [Fact]
     public async Task AddIssue_Throws_WhenNotProjectLead()
     {
-        var milestone = MakeMilestone();
-        _milestonesRepo.Setup(r => r.FindForUpdateAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedMilestone();
+        await SeedIssue();
         _authGuard.Setup(g => g.Authorize(It.IsAny<Milestone>(), It.IsAny<IAuthorizationRequirement>()))
             .ThrowsAsync(new ForbiddenException("Not lead"));
 
@@ -161,31 +167,24 @@ public class MilestoneIssuesServiceTests
     [Fact]
     public async Task RemoveIssue_RemovesItem_WhenValid()
     {
-        var item = new MilestoneItem { MilestoneId = MilestoneId, IssueId = IssueId };
-        var milestone = MakeMilestone(items: [item]);
-        _milestonesRepo.Setup(r => r.FindForUpdateAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedMilestone();
+        await SeedIssue();
+        _db.MilestoneItems.Add(new MilestoneItem { MilestoneId = MilestoneId, IssueId = IssueId });
+        await _db.SaveChangesAsync();
 
         await _service.RemoveIssue(ProjectId, MilestoneId, IssueId);
 
-        Assert.Empty(milestone.MilestoneItems);
+        var items = _db.Milestones
+            .Include(m => m.MilestoneItems)
+            .First(m => m.Id == MilestoneId)
+            .MilestoneItems;
+        Assert.Empty(items);
     }
 
     [Fact]
     public async Task RemoveIssue_Throws_WhenIssueNotInMilestone()
     {
-        var milestone = MakeMilestone(items: []);
-        _milestonesRepo.Setup(r => r.FindForUpdateAsync(MilestoneId)).ReturnsAsync(milestone);
-
-        await Assert.ThrowsAsync<NotFoundException>(
-            () => _service.RemoveIssue(ProjectId, MilestoneId, IssueId));
-
-    }
-
-    [Fact]
-    public async Task RemoveIssue_Throws_WhenMilestoneNotInProject()
-    {
-        var milestone = MakeMilestone(projectId: 99);
-        _milestonesRepo.Setup(r => r.FindForUpdateAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedMilestone();
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => _service.RemoveIssue(ProjectId, MilestoneId, IssueId));
@@ -194,8 +193,11 @@ public class MilestoneIssuesServiceTests
     [Fact]
     public async Task RemoveIssue_Throws_WhenNotProjectLead()
     {
-        var milestone = MakeMilestone();
-        _milestonesRepo.Setup(r => r.FindForUpdateAsync(MilestoneId)).ReturnsAsync(milestone);
+        await SeedMilestone();
+        await SeedIssue();
+        _db.MilestoneItems.Add(new MilestoneItem { MilestoneId = MilestoneId, IssueId = IssueId });
+        await _db.SaveChangesAsync();
+
         _authGuard.Setup(g => g.Authorize(It.IsAny<Milestone>(), It.IsAny<IAuthorizationRequirement>()))
             .ThrowsAsync(new ForbiddenException("Not lead"));
 

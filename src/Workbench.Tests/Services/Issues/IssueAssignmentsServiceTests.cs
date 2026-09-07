@@ -1,49 +1,58 @@
 using Moq;
 using Workbench.Common.Exceptions;
 using Workbench.Modules.Auth.Services;
-using Workbench.Modules.Authorization.Extensions;
-using Workbench.Modules.Authorization.Requirements;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
-using Workbench.Modules.Issues.Repositories;
 using Workbench.Modules.Issues.Services.Implementations;
 using Workbench.Modules.Projects.Enums;
 using Workbench.Modules.Projects.Memberships.Dtos;
 using Workbench.Modules.Projects.Memberships.Services;
+using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Issues;
 
-public class IssueAssignmentsServiceTests
+public class IssueAssignmentsServiceTests : IDisposable
 {
     private const int CurrentUserId = 10;
     private const int OtherUserId = 20;
     private const int ProjectId = 1;
     private const int IssueId = 100;
 
+    private readonly Data.AppDbContext _db;
     private readonly Mock<IAuthorizationGuard> _authGuard;
-    private readonly Mock<IIssuesRepository> _issuesRepo;
     private readonly Mock<IProjectMembershipsService> _membershipsService;
     private readonly IssueAssignmentsService _service;
 
     public IssueAssignmentsServiceTests()
     {
+        _db = TestDbContextFactory.Create();
+
         var userMock = new Mock<ICurrentUser>();
         userMock.Setup(u => u.Id).Returns(CurrentUserId);
 
         _authGuard = new Mock<IAuthorizationGuard>();
-        _issuesRepo = new Mock<IIssuesRepository>();
         _membershipsService = new Mock<IProjectMembershipsService>();
 
         _service = new IssueAssignmentsService(
-            _issuesRepo.Object,
+            _db,
             userMock.Object,
             _authGuard.Object,
             _membershipsService.Object);
     }
 
-    private static Issue MakeIssue(int? assignedToId = null, Status status = Status.Open) =>
-        new()
+    public void Dispose() => _db.Dispose();
+
+    private async Task SeedIssue(int? assignedToId = null, Status status = Status.Open)
+    {
+        var author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" };
+        var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+        var currentUser = new Modules.Auth.Models.ApplicationUser { Id = CurrentUserId, UserName = "current" };
+        var otherUser = new Modules.Auth.Models.ApplicationUser { Id = OtherUserId, UserName = "other" };
+        _db.Users.AddRange(author, owner, currentUser, otherUser);
+        var project = new Modules.Projects.Models.Project { Id = ProjectId, OwnerId = 1, Name = "P", Description = null };
+        _db.Projects.Add(project);
+        _db.Issues.Add(new Issue
         {
             Id = IssueId,
             ProjectId = ProjectId,
@@ -51,118 +60,107 @@ public class IssueAssignmentsServiceTests
             Status = status,
             AuthorId = 99,
             AssignedToId = assignedToId,
-            Author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" }
-        };
+        });
+        await _db.SaveChangesAsync();
+    }
 
     [Fact]
     public async Task AssignCurrentUser_SetsAssignedTo_WhenOpenAndUnassigned()
     {
-        var issue = MakeIssue();
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(issue);
+        await SeedIssue();
 
         await _service.AssignCurrentUser(IssueId);
 
-        Assert.Equal(CurrentUserId, issue.AssignedToId);
+        var issue = await _db.Issues.FindAsync(IssueId);
+        Assert.Equal(CurrentUserId, issue!.AssignedToId);
     }
 
     [Fact]
     public async Task AssignCurrentUser_Throws_WhenIssueClosed()
     {
-        var issue = MakeIssue(status: Status.Closed);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(issue);
+        await SeedIssue(status: Status.Closed);
 
         await Assert.ThrowsAsync<ConflictException>(
             () => _service.AssignCurrentUser(IssueId));
-
     }
 
     [Fact]
     public async Task AssignCurrentUser_Throws_WhenAlreadyAssigned()
     {
-        var issue = MakeIssue(assignedToId: OtherUserId);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(issue);
+        await SeedIssue(assignedToId: OtherUserId);
 
         await Assert.ThrowsAsync<ConflictException>(
             () => _service.AssignCurrentUser(IssueId));
-
     }
 
     [Fact]
     public async Task UnassignCurrentUser_ClearsAssignedTo_WhenAssignedToCurrentUser()
     {
-        var issue = MakeIssue(assignedToId: CurrentUserId);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(issue);
+        await SeedIssue(assignedToId: CurrentUserId);
 
         await _service.UnassignCurrentUser(IssueId);
 
-        Assert.Null(issue.AssignedToId);
+        var issue = await _db.Issues.FindAsync(IssueId);
+        Assert.Null(issue!.AssignedToId);
     }
 
     [Fact]
     public async Task UnassignCurrentUser_Throws_WhenNotAssignedToCurrentUser()
     {
-        var issue = MakeIssue(assignedToId: OtherUserId);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(issue);
+        await SeedIssue(assignedToId: OtherUserId);
 
         await Assert.ThrowsAsync<ForbiddenException>(
             () => _service.UnassignCurrentUser(IssueId));
-
     }
 
     [Fact]
     public async Task UnassignCurrentUser_Throws_WhenIssueClosed()
     {
-        var issue = MakeIssue(assignedToId: CurrentUserId, status: Status.Closed);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(issue);
+        await SeedIssue(assignedToId: CurrentUserId, status: Status.Closed);
 
         await Assert.ThrowsAsync<ConflictException>(
             () => _service.UnassignCurrentUser(IssueId));
-
     }
 
     [Fact]
     public async Task AssignUser_SetsAssignedToByUserId()
     {
-        var issue = MakeIssue();
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(issue);
+        await SeedIssue();
         _membershipsService.Setup(s => s.GetProjectMembership(ProjectId, "targetuser"))
             .ReturnsAsync(new ProjectMembershipDto(OtherUserId, "targetuser", ProjectMemberRole.Member));
 
         await _service.AssignUser(IssueId, "targetuser");
 
-        Assert.Equal(OtherUserId, issue.AssignedToId);
+        var issue = await _db.Issues.FindAsync(IssueId);
+        Assert.Equal(OtherUserId, issue!.AssignedToId);
     }
 
     [Fact]
     public async Task AssignUser_Throws_WhenIssueClosed()
     {
-        var issue = MakeIssue(status: Status.Closed);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(issue);
+        await SeedIssue(status: Status.Closed);
 
         await Assert.ThrowsAsync<ConflictException>(
             () => _service.AssignUser(IssueId, "targetuser"));
-
     }
 
     [Fact]
     public async Task UnassignUser_ClearsAssignedTo()
     {
-        var issue = MakeIssue(assignedToId: OtherUserId);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(issue);
+        await SeedIssue(assignedToId: OtherUserId);
 
         await _service.UnassignUser(IssueId);
 
-        Assert.Null(issue.AssignedToId);
+        var issue = await _db.Issues.FindAsync(IssueId);
+        Assert.Null(issue!.AssignedToId);
     }
 
     [Fact]
     public async Task UnassignUser_Throws_WhenIssueClosed()
     {
-        var issue = MakeIssue(assignedToId: OtherUserId, status: Status.Closed);
-        _issuesRepo.Setup(r => r.GetByIdAsync(IssueId)).ReturnsAsync(issue);
+        await SeedIssue(assignedToId: OtherUserId, status: Status.Closed);
 
         await Assert.ThrowsAsync<ConflictException>(
             () => _service.UnassignUser(IssueId));
-
     }
 }

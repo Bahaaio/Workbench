@@ -1,7 +1,5 @@
 using Workbench.Modules.Projects.Invites;
 using Workbench.Modules.Projects.Memberships;
-using Workbench.Modules.Projects.Repositories;
-using Workbench.Modules.Projects.Repositories.Implementations;
 using Workbench.Modules.Projects.Services;
 using Workbench.Modules.Projects.Services.Implementations;
 
@@ -14,7 +12,6 @@ public static class DependencyInjection
         public void AddProjectsModule()
         {
             services.AddScoped<IProjectsService, ProjectsService>();
-            services.AddScoped<IProjectsRepository, ProjectsRepository>();
 
             services.AddProjectMembershipsModule();
             services.AddProjectInvitesModule();

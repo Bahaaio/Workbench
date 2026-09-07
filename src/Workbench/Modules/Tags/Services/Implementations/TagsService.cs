@@ -1,28 +1,29 @@
+using Microsoft.EntityFrameworkCore;
 using Workbench.Common.Exceptions;
+using Workbench.Common.Extensions;
+using Workbench.Data;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
-using Workbench.Modules.Projects.Repositories;
 using Workbench.Modules.Tags.Dtos;
 using Workbench.Modules.Tags.Dtos.Requests;
 using Workbench.Modules.Tags.Mappers;
+using Workbench.Modules.Projects.Models;
 using Workbench.Modules.Tags.Models;
-using Workbench.Modules.Tags.Repositories;
 
 namespace Workbench.Modules.Tags.Services.Implementations;
 
 public class TagsService : ITagsService
 {
+    private readonly AppDbContext _db;
     private readonly IAuthorizationGuard _authGuard;
     private readonly ILogger<TagsService> _logger;
-    private readonly IProjectsRepository _projectsRepository;
-    private readonly ITagsRepository _tagsRepository;
-    public TagsService(ITagsRepository tagsRepository,
-        ILogger<TagsService> logger, IProjectsRepository projectsRepository,
+
+    public TagsService(AppDbContext dbContext,
+        ILogger<TagsService> logger,
         IAuthorizationGuard authGuard)
     {
-        _tagsRepository = tagsRepository;
+        _db = dbContext;
         _logger = logger;
-        _projectsRepository = projectsRepository;
         _authGuard = authGuard;
     }
 
@@ -30,7 +31,10 @@ public class TagsService : ITagsService
     {
         await AuthorizeProjectAccess(projectId);
 
-        var existingTag = await _tagsRepository.FindByNameAsync(projectId, request.Name);
+        var existingTag = await _db.Tags
+            .Where(t => t.ProjectId == projectId)
+            .SingleOrDefaultAsync(t => EF.Functions.ILike(t.Name, request.Name));
+
         if (existingTag is not null)
             throw new ConflictException($"Tag with name {request.Name} already exists");
 
@@ -42,8 +46,8 @@ public class TagsService : ITagsService
             ProjectId = projectId
         };
 
-        _tagsRepository.Add(tag);
-        await _tagsRepository.SaveChangesAsync();
+        _db.Tags.Add(tag);
+        await _db.SaveChangesAsync();
 
         _logger.LogInformation("Created tag {tagName}", tag.Name);
 
@@ -51,19 +55,25 @@ public class TagsService : ITagsService
     }
 
     public Task<List<TagDto>> GetAll(int projectId) =>
-        _tagsRepository.GetAllByProjectIdAsync(projectId);
+        _db.Tags
+            .AsNoTracking()
+            .Where(t => t.ProjectId == projectId)
+            .Select(TagMapper.ToDtoExpression)
+            .ToListAsync();
 
     public async Task<TagDto> Update(int projectId, string tagName, UpdateTagRequest request)
     {
         await AuthorizeProjectAccess(projectId);
 
-        var tag = await _tagsRepository.FindByNameAsync(projectId, tagName)
+        var tag = await _db.Tags
+                    .Where(t => t.ProjectId == projectId)
+                    .SingleOrDefaultAsync(t => EF.Functions.ILike(t.Name, tagName))
                   ?? throw new NotFoundException($"Tag with tagName {tagName} doesn't exist");
 
         tag.Description = request.Description;
         tag.Color = request.Color;
 
-        await _tagsRepository.SaveChangesAsync();
+        await _db.SaveChangesAsync();
         return tag.ToDto();
     }
 
@@ -71,18 +81,22 @@ public class TagsService : ITagsService
     {
         await AuthorizeProjectAccess(projectId);
 
-        var deleted = await _tagsRepository.DeleteByNameAsync(projectId, tagName);
+        var deleted = await _db.Tags
+            .Where(t => t.ProjectId == projectId)
+            .Where(t => EF.Functions.ILike(t.Name, tagName))
+            .ExecuteDeleteAsync();
 
         if (deleted > 0)
             _logger.LogInformation("Deleted tag {tagName}", tagName);
     }
 
-    /// <summary>
-    ///     Authorizes the current user to access the project with the given <paramref name="projectId" />.
-    /// </summary>
     private async Task AuthorizeProjectAccess(int projectId)
     {
-        var project = await _projectsRepository.GetByIdAsync(projectId);
+        var project = await _db.Projects
+            .Include(p => p.Owner)
+            .SingleOrDefaultAsync(p => p.Id == projectId)
+            ?? throw new NotFoundException($"Project with id {projectId} not found");
+
         await _authGuard.AuthorizeOwnerOrProjectMember(project);
     }
 }
