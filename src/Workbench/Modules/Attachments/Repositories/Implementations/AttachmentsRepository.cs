@@ -1,31 +1,41 @@
 using Workbench.Common.Exceptions;
+using Workbench.Common.Extensions;
 using Workbench.Data;
-using Workbench.Data.Persistence.Implementations;
 using Workbench.Modules.Attachments.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Workbench.Modules.Attachments.Repositories.Implementations;
 
 /// <inheritdoc cref="IAttachmentsRepository{TAttachment}" />
-public class AttachmentsRepository<TAttachment> : Repository<TAttachment, Guid>,
-    IAttachmentsRepository<TAttachment>
+public class AttachmentsRepository<TAttachment> : IAttachmentsRepository<TAttachment>
     where TAttachment : Attachment, IHasParent, new()
 {
-    public AttachmentsRepository(AppDbContext context) : base(context)
+    private readonly DbSet<TAttachment> _dbSet;
+
+    public AttachmentsRepository(AppDbContext context)
     {
+        _dbSet = context.Set<TAttachment>();
     }
 
+    public async Task<TAttachment?> FindAsync(Guid id) => await _dbSet.FindAsync(id);
+
+    public Task<TAttachment> GetByIdAsync(Guid id) => _dbSet.FindOrThrowAsync(id);
+
+    public TAttachment Add(TAttachment entity) => _dbSet.Add(entity).Entity;
+
+    public void Remove(TAttachment entity) => _dbSet.Remove(entity);
+
     public Task<int> CountByParentIdAsync(int parentId) =>
-        DbSet.CountAsync(a => a.ParentId == parentId);
+        _dbSet.CountAsync(a => a.ParentId == parentId);
 
     public Task<List<string>> GetIdsByParentIdAsync(int parentId) =>
-        DbSet
+        _dbSet
             .Where(a => a.ParentId == parentId)
             .Select(a => a.Id.ToString())
             .ToListAsync();
 
     public async Task<int> GetParentIdByAttachmentAsync(Guid attachmentId) =>
-        await DbSet
+        await _dbSet
             .Where(a => a.Id == attachmentId)
             .Select(a => (int?)a.ParentId)
             .SingleOrDefaultAsync()

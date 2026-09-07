@@ -1,13 +1,16 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Issues.Dtos;
 using Workbench.Modules.Milestones.Dtos;
 using Workbench.Modules.Milestones.Models;
 
 namespace Workbench.Modules.Milestones.Repositories;
 
-public interface IMilestonesRepository : IRepository<Milestone, int>
+public interface IMilestonesRepository
 {
-    /// <summary>Returns all milestones for a project, projected to DTOs.</summary>
+    Task<Milestone?> FindAsync(int id);
+    Task<Milestone> GetByIdAsync(int id);
+    Milestone Add(Milestone entity);
+    Milestone Update(Milestone entity);
+    void Remove(Milestone entity);
     Task<List<MilestoneDto>> GetAllAsync(int projectId);
 
     /// <summary>

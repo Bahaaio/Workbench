@@ -1,13 +1,17 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Issues.Dtos;
 using Workbench.Modules.Issues.Dtos.Requests;
 using Workbench.Modules.Issues.Models;
 
 namespace Workbench.Modules.Issues.Repositories;
 
-public interface IIssuesRepository : IRepository<Issue, int>
+public interface IIssuesRepository
 {
-    /// <summary>Returns all issues matching <paramref name="query" />, projected to DTOs.</summary>
+    Task<Issue?> FindAsync(int id);
+    Task<Issue> GetByIdAsync(int id);
+    Issue Add(Issue entity);
+    Issue Update(Issue entity);
+    void Remove(Issue entity);
+    Task ExistsOrThrowAsync(int id);
     Task<List<IssueDto>> GetAllAsync(int projectId, IssueQuery query);
 
     /// <summary>

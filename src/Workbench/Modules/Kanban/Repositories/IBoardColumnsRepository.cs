@@ -1,8 +1,10 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Kanban.Models;
 
 namespace Workbench.Modules.Kanban.Repositories;
 
-public interface IBoardColumnsRepository : IRepository<BoardColumn, int>
+public interface IBoardColumnsRepository
 {
+    BoardColumn Add(BoardColumn entity);
+    BoardColumn Update(BoardColumn entity);
+    void Remove(BoardColumn entity);
 }

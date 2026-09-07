@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Workbench.Common.Exceptions;
+using Workbench.Common.Extensions;
 using Workbench.Data;
-using Workbench.Data.Persistence.Implementations;
 using Workbench.Modules.Issues.Dtos;
 using Workbench.Modules.Issues.Mappers;
 using Workbench.Modules.Milestones.Dtos;
@@ -10,24 +10,34 @@ using Workbench.Modules.Milestones.Models;
 
 namespace Workbench.Modules.Milestones.Repositories.Implementations;
 
-public class MilestonesRepository : Repository<Milestone, int>, IMilestonesRepository
+public class MilestonesRepository : IMilestonesRepository
 {
     private readonly AppDbContext _context;
+    private readonly DbSet<Milestone> _dbSet;
 
-    public MilestonesRepository(AppDbContext context) : base(context)
+    public MilestonesRepository(AppDbContext context)
     {
         _context = context;
+        _dbSet = context.Set<Milestone>();
     }
 
-    public override async Task<Milestone> GetByIdAsync(int id) =>
-        await DbSet
+    public async Task<Milestone?> FindAsync(int id) => await _dbSet.FindAsync(id);
+
+    public async Task<Milestone> GetByIdAsync(int id) =>
+        await _dbSet
             .Include(m => m.MilestoneItems)
                 .ThenInclude(mi => mi.Issue)
             .SingleOrDefaultAsync(m => m.Id == id)
         ?? throw new NotFoundException($"Milestone with id {id} not found");
 
+    public Milestone Add(Milestone entity) => _dbSet.Add(entity).Entity;
+
+    public Milestone Update(Milestone entity) => _dbSet.Update(entity).Entity;
+
+    public void Remove(Milestone entity) => _dbSet.Remove(entity);
+
     public Task<List<MilestoneDto>> GetAllAsync(int projectId) =>
-        DbSet
+        _dbSet
             .Where(m => m.ProjectId == projectId)
             .Include(m => m.MilestoneItems)
                 .ThenInclude(mi => mi.Issue)
@@ -35,12 +45,12 @@ public class MilestonesRepository : Repository<Milestone, int>, IMilestonesRepos
             .ToListAsync();
 
     public Task<Milestone?> FindForUpdateAsync(int milestoneId) =>
-        DbSet
+        _dbSet
             .Include(m => m.MilestoneItems)
             .SingleOrDefaultAsync(m => m.Id == milestoneId);
 
     public Task<Milestone?> FindWithItemsAsync(int milestoneId) =>
-        DbSet
+        _dbSet
             .Include(m => m.MilestoneItems)
                 .ThenInclude(mi => mi.Issue)
             .SingleOrDefaultAsync(m => m.Id == milestoneId);

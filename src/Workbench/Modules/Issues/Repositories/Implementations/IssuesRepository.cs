@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Workbench.Common.Exceptions;
+using Workbench.Common.Extensions;
 using Workbench.Data;
-using Workbench.Data.Persistence.Implementations;
 using Workbench.Modules.Issues.Dtos;
 using Workbench.Modules.Issues.Dtos.Requests;
 using Workbench.Modules.Issues.Enums;
@@ -11,17 +11,21 @@ using Workbench.Modules.Issues.Models;
 
 namespace Workbench.Modules.Issues.Repositories.Implementations;
 
-public class IssuesRepository : Repository<Issue, int>, IIssuesRepository
+public class IssuesRepository : IIssuesRepository
 {
     private readonly AppDbContext _context;
+    private readonly DbSet<Issue> _dbSet;
 
-    public IssuesRepository(AppDbContext context) : base(context)
+    public IssuesRepository(AppDbContext context)
     {
         _context = context;
+        _dbSet = context.Set<Issue>();
     }
 
-    public override async Task<Issue> GetByIdAsync(int id) =>
-        await DbSet
+    public async Task<Issue?> FindAsync(int id) => await _dbSet.FindAsync(id);
+
+    public async Task<Issue> GetByIdAsync(int id) =>
+        await _dbSet
             .Where(i => i.Id == id)
             .Include(i => i.Project)
             .Include(i => i.Author)
@@ -33,8 +37,16 @@ public class IssuesRepository : Repository<Issue, int>, IIssuesRepository
             .SingleOrDefaultAsync()
         ?? throw new NotFoundException($"Issue with id {id} not found");
 
+    public Issue Add(Issue entity) => _dbSet.Add(entity).Entity;
+
+    public Issue Update(Issue entity) => _dbSet.Update(entity).Entity;
+
+    public void Remove(Issue entity) => _dbSet.Remove(entity);
+
+    public Task ExistsOrThrowAsync(int id) => _dbSet.ExistsOrThrowAsync(id);
+
     public Task<List<IssueDto>> GetAllAsync(int projectId, IssueQuery query) =>
-        DbSet
+        _dbSet
             .AsNoTracking()
             .Where(i => i.ProjectId == projectId)
             .ApplyFilters(query)
@@ -42,7 +54,7 @@ public class IssuesRepository : Repository<Issue, int>, IIssuesRepository
             .ToListAsync();
 
     public Task<Issue?> FindForUpdateAsync(int id) =>
-        DbSet
+        _dbSet
             .Where(i => i.Id == id)
             .Include(i => i.Author)
             .Include(i => i.AssignedTo)
@@ -52,13 +64,13 @@ public class IssuesRepository : Repository<Issue, int>, IIssuesRepository
             .SingleOrDefaultAsync();
 
     public Task<Issue?> FindWithTagsAsync(int id) =>
-        DbSet
+        _dbSet
             .Where(i => i.Id == id)
             .Include(i => i.Tags)
             .SingleOrDefaultAsync();
 
     public Task<List<IssueDto>> GetAllByAuthorAsync(int authorId, IssueQuery query) =>
-        DbSet
+        _dbSet
             .AsNoTracking()
             .ApplyFilters(query)
             .Where(i => i.AuthorId == authorId)
@@ -66,7 +78,7 @@ public class IssuesRepository : Repository<Issue, int>, IIssuesRepository
             .ToListAsync();
 
     public Task<List<IssueDto>> GetAllAssignedToUserAsync(int userId, IssueQuery query) =>
-        DbSet
+        _dbSet
             .AsNoTracking()
             .ApplyFilters(query)
             .Where(i => i.AssignedToId == userId)
@@ -78,7 +90,7 @@ public class IssuesRepository : Repository<Issue, int>, IIssuesRepository
 
     public async Task UnassignFromAllAsync(int projectId, int userId)
     {
-        await DbSet
+        await _dbSet
             .Where(i =>
                 i.ProjectId == projectId &&
                 i.AssignedToId == userId &&

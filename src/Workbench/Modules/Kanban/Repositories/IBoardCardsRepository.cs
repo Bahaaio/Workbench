@@ -1,9 +1,13 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Kanban.Models;
 
 namespace Workbench.Modules.Kanban.Repositories;
 
-public interface IBoardCardsRepository : IRepository<BoardCard, int>
+public interface IBoardCardsRepository
 {
+    Task<BoardCard?> FindAsync(int id);
+    Task<BoardCard> GetByIdAsync(int id);
+    BoardCard Add(BoardCard entity);
+    BoardCard Update(BoardCard entity);
+    void Remove(BoardCard entity);
     Task LoadIssueAsync(BoardCard card);
 }

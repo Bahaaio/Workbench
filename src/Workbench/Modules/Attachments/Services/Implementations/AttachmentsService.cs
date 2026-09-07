@@ -1,4 +1,8 @@
+using Microsoft.EntityFrameworkCore;
+using Workbench.Common.Exceptions;
+using Workbench.Common.Extensions;
 using Workbench.Common.Models;
+using Workbench.Data;
 using Workbench.Data.Persistence;
 using Workbench.Modules.Attachments.Dtos;
 using Workbench.Modules.Attachments.Mappers;
@@ -27,14 +31,14 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
     private readonly IAttachmentValidationService _attachmentValidationService;
     private readonly IAttachmentsRepository<TAttachment> _attachmentsRepository;
     private readonly ILogger<AttachmentsService<TParent, TAttachment>> _logger;
-    private readonly IRepository<TParent, int> _parentRepository;
+    private readonly DbSet<TParent> _parentSet;
     private readonly IStorageService _storageService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _user;
 
     protected AttachmentsService(
         IStorageService storageService,
-        IRepository<TParent, int> parentRepository,
+        AppDbContext dbContext,
         IAttachmentsRepository<TAttachment> attachmentsRepository,
         IUnitOfWork unitOfWork,
         ICurrentUser user,
@@ -42,7 +46,7 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
         IAttachmentValidationService attachmentValidationService)
     {
         _storageService = storageService;
-        _parentRepository = parentRepository;
+        _parentSet = dbContext.Set<TParent>();
         _attachmentsRepository = attachmentsRepository;
         _unitOfWork = unitOfWork;
         _user = user;
@@ -55,7 +59,7 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
     public virtual async Task<AttachmentDto> Add(int parentId, IFormFile file)
     {
         _attachmentValidationService.Validate(file, AttachmentOptions);
-        await _parentRepository.ExistsOrThrowAsync(parentId);
+        await _parentSet.ExistsOrThrowAsync(parentId);
 
         var count = await _attachmentsRepository.CountByParentIdAsync(parentId);
         _attachmentValidationService.ValidateCount(count + 1, AttachmentOptions.MaxCount);
@@ -107,7 +111,7 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
     ///     Used to implement authorization logic in derived classes.
     /// </summary>
     protected Task<TParent> GetOwnerEntity(int parentId) =>
-        _parentRepository.GetByIdAsync(parentId);
+        _parentSet.FindOrThrowAsync(parentId);
 
     /// <summary>
     ///     Gets the owner entity of an attachment by attachment ID.
@@ -116,6 +120,6 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
     protected async Task<TParent> GetOwnerEntity(Guid attachmentId)
     {
         var parentId = await _attachmentsRepository.GetParentIdByAttachmentAsync(attachmentId);
-        return await _parentRepository.GetByIdAsync(parentId);
+        return await _parentSet.FindOrThrowAsync(parentId);
     }
 }

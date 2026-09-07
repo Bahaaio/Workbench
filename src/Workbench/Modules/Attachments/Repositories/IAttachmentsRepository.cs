@@ -1,4 +1,3 @@
-using Workbench.Data.Persistence;
 using Workbench.Modules.Attachments.Models;
 
 namespace Workbench.Modules.Attachments.Repositories;
@@ -10,9 +9,14 @@ namespace Workbench.Modules.Attachments.Repositories;
 ///     shared TPH table.
 /// </summary>
 /// <typeparam name="TAttachment">The concrete attachment type.</typeparam>
-public interface IAttachmentsRepository<TAttachment> : IRepository<TAttachment, Guid>
+public interface IAttachmentsRepository<TAttachment>
     where TAttachment : Attachment, new()
 {
+    Task<TAttachment?> FindAsync(Guid id);
+    Task<TAttachment> GetByIdAsync(Guid id);
+    TAttachment Add(TAttachment entity);
+    void Remove(TAttachment entity);
+
     /// <summary>
     ///     Returns the number of attachments belonging to <paramref name="parentId" />
     /// </summary>

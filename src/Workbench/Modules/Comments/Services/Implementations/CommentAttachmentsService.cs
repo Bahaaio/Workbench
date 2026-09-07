@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Workbench.Data;
 using Workbench.Data.Persistence;
 using Workbench.Modules.Attachments.Dtos;
 using Workbench.Modules.Attachments.Options;
@@ -10,7 +11,6 @@ using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Comments.Models;
 using Workbench.Modules.Comments.Options;
-using Workbench.Modules.Comments.Repositories;
 using Workbench.Modules.Storage.Services;
 
 namespace Workbench.Modules.Comments.Services.Implementations;
@@ -21,7 +21,7 @@ public class CommentAttachmentsService : AttachmentsService<Comment, CommentAtta
 
     public CommentAttachmentsService(
         IStorageService storageService,
-        ICommentsRepository commentsRepository,
+        AppDbContext dbContext,
         IAttachmentsRepository<CommentAttachment> attachmentsRepository,
         IUnitOfWork unitOfWork,
         ICurrentUser user,
@@ -29,7 +29,7 @@ public class CommentAttachmentsService : AttachmentsService<Comment, CommentAtta
         IAttachmentValidationService attachmentValidationService,
         IOptions<CommentAttachmentOptions> attachmentOptions,
         IAuthorizationGuard authGuard)
-        : base(storageService, commentsRepository, attachmentsRepository, unitOfWork, user, logger,
+        : base(storageService, dbContext, attachmentsRepository, unitOfWork, user, logger,
             attachmentValidationService)
     {
         _authGuard = authGuard;

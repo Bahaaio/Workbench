@@ -1,26 +1,34 @@
 using Microsoft.EntityFrameworkCore;
 using Workbench.Data;
-using Workbench.Data.Persistence.Implementations;
 using Workbench.Modules.Kanban.Dtos;
 using Workbench.Modules.Kanban.Mappers;
 using Workbench.Modules.Kanban.Models;
 
 namespace Workbench.Modules.Kanban.Repositories.Implementations;
 
-public class BoardsRepository : Repository<Board, int>, IBoardsRepository
+public class BoardsRepository : IBoardsRepository
 {
-    public BoardsRepository(AppDbContext context) : base(context)
+    private readonly DbSet<Board> _dbSet;
+
+    public BoardsRepository(AppDbContext context)
     {
+        _dbSet = context.Set<Board>();
     }
 
+    public Board Add(Board entity) => _dbSet.Add(entity).Entity;
+
+    public Board Update(Board entity) => _dbSet.Update(entity).Entity;
+
+    public void Remove(Board entity) => _dbSet.Remove(entity);
+
     public Task<BoardDto> GetByProjectId(int projectId) =>
-        DbSet
+        _dbSet
             .Where(b => b.ProjectId == projectId)
             .Select(BoardMapper.ToDtoExpression)
             .SingleAsync();
 
     public Task<Board> GetByProjectIdRaw(int projectId) =>
-        DbSet
+        _dbSet
             .Include(b => b.Columns)
             .ThenInclude(c => c.Cards)
             .ThenInclude(c => c.Issue)
