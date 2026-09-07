@@ -2,11 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Workbench.Common.Exceptions;
+using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Milestones.Models;
 using Workbench.Modules.Milestones.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Models;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Milestones;
@@ -32,14 +35,15 @@ public class MilestoneIssuesServiceTests : IDisposable
 
     private async Task SeedMilestone(int projectId = ProjectId)
     {
-        var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+        var owner = new ApplicationUser { Id = 1, UserName = "owner" };
         _db.Users.Add(owner);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = projectId,
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         _db.Milestones.Add(new Milestone
         {
@@ -54,23 +58,24 @@ public class MilestoneIssuesServiceTests : IDisposable
 
     private async Task SeedIssue(int projectId = ProjectId)
     {
-        var author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" };
+        var author = new ApplicationUser { Id = 99, UserName = "author" };
         _db.Users.Add(author);
         if (projectId != ProjectId)
         {
-            if (!_db.ChangeTracker.Entries<Modules.Auth.Models.ApplicationUser>().Any(e => e.Entity.Id == 1))
+            if (!_db.ChangeTracker.Entries<ApplicationUser>().Any(e => e.Entity.Id == 1))
             {
-                var otherOwner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+                var otherOwner = new ApplicationUser { Id = 1, UserName = "owner" };
                 _db.Users.Add(otherOwner);
             }
-            if (!_db.ChangeTracker.Entries<Modules.Projects.Models.Project>().Any(e => e.Entity.Id == projectId))
+            if (!_db.ChangeTracker.Entries<Project>().Any(e => e.Entity.Id == projectId))
             {
-                _db.Projects.Add(new Modules.Projects.Models.Project
+                _db.Projects.Add(new Project
                 {
                     Id = projectId,
                     OwnerId = 1,
                     Name = "P",
                     Description = null,
+                    Visibility = ProjectVisibility.Public,
                 });
             }
         }

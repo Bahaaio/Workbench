@@ -2,10 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Exceptions;
 using Workbench.Common.Enums;
+using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Issues.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Models;
 using Workbench.Modules.Tags.Models;
 using Workbench.Tests.Helpers;
 
@@ -31,27 +34,28 @@ public class IssueTagsServiceTests : IDisposable
 
     private async Task SeedProject(int projectId = ProjectId)
     {
-        var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+        var owner = new ApplicationUser { Id = 1, UserName = "owner" };
         _db.Users.Add(owner);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = projectId,
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }
 
     private async Task SeedIssue(List<Tag>? tags = null, bool createProject = true)
     {
-        var author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" };
+        var author = new ApplicationUser { Id = 99, UserName = "author" };
         _db.Users.Add(author);
         if (createProject)
         {
-            var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+            var owner = new ApplicationUser { Id = 1, UserName = "owner" };
             _db.Users.Add(owner);
-            _db.Projects.Add(new Modules.Projects.Models.Project { Id = ProjectId, OwnerId = 1, Name = "P", Description = null });
+            _db.Projects.Add(new Project { Id = ProjectId, OwnerId = 1, Name = "P", Description = null, Visibility = ProjectVisibility.Public });
         }
         var issue = new Issue
         {

@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Exceptions;
+using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Kanban.Services;
 using Workbench.Modules.Projects.Dtos.Requests;
 using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Models;
 using Workbench.Modules.Projects.Memberships.Services;
 using Workbench.Modules.Projects.Services.Implementations;
 using Workbench.Tests.Helpers;
@@ -47,7 +49,7 @@ public class ProjectsServiceTests : IDisposable
 
     private async Task SeedProject(int ownerId = OtherUserId, string name = "Test Project")
     {
-        var users = new List<Modules.Auth.Models.ApplicationUser>
+        var users = new List<ApplicationUser>
         {
             new() { Id = ownerId, UserName = $"user{ownerId}" },
             new() { Id = CurrentUserId, UserName = "current" },
@@ -55,12 +57,13 @@ public class ProjectsServiceTests : IDisposable
         };
         var distinctUsers = users.GroupBy(u => u.Id).Select(g => g.First()).ToList();
         _db.Users.AddRange(distinctUsers);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = ProjectId,
             OwnerId = ownerId,
             Name = name,
             Description = "Description",
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }
@@ -86,7 +89,7 @@ public class ProjectsServiceTests : IDisposable
     [Fact]
     public async Task Create_CreatesProjectAndBoardAndMembership()
     {
-        _db.Users.Add(new Modules.Auth.Models.ApplicationUser { Id = CurrentUserId, UserName = "current" });
+        _db.Users.Add(new ApplicationUser { Id = CurrentUserId, UserName = "current" });
         await _db.SaveChangesAsync();
 
         _membershipsService.Setup(s => s.AddMember(It.IsAny<int>(), CurrentUserId, ProjectMemberRole.Lead))
@@ -108,7 +111,7 @@ public class ProjectsServiceTests : IDisposable
     [Fact]
     public async Task Create_SetsOwnerIdToCurrentUser()
     {
-        _db.Users.Add(new Modules.Auth.Models.ApplicationUser { Id = CurrentUserId, UserName = "current" });
+        _db.Users.Add(new ApplicationUser { Id = CurrentUserId, UserName = "current" });
         await _db.SaveChangesAsync();
 
         _membershipsService.Setup(s => s.AddMember(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<ProjectMemberRole>()))
@@ -156,7 +159,7 @@ public class ProjectsServiceTests : IDisposable
     public async Task Update_Throws_WhenNotOwner()
     {
         await SeedProject(ownerId: OtherUserId);
-        _authGuard.Setup(g => g.Authorize(It.IsAny<Modules.Projects.Models.Project>(), It.IsAny<IAuthorizationRequirement>()))
+        _authGuard.Setup(g => g.Authorize(It.IsAny<Project>(), It.IsAny<IAuthorizationRequirement>()))
             .ThrowsAsync(new ForbiddenException("Not owner"));
 
         await Assert.ThrowsAsync<ForbiddenException>(
@@ -177,7 +180,7 @@ public class ProjectsServiceTests : IDisposable
     public async Task Delete_Throws_WhenNotOwner()
     {
         await SeedProject(ownerId: OtherUserId);
-        _authGuard.Setup(g => g.Authorize(It.IsAny<Modules.Projects.Models.Project>(), It.IsAny<IAuthorizationRequirement>()))
+        _authGuard.Setup(g => g.Authorize(It.IsAny<Project>(), It.IsAny<IAuthorizationRequirement>()))
             .ThrowsAsync(new ForbiddenException("Not owner"));
 
         await Assert.ThrowsAsync<ForbiddenException>(

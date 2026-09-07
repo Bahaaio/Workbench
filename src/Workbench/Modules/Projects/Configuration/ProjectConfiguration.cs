@@ -15,6 +15,10 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(p => p.Description)
             .HasMaxLength(500);
 
+        builder.Property(p => p.Visibility)
+            .IsRequired()
+            .HasConversion<string>();
+
         builder.Property(p => p.CreatedAt)
             .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP");

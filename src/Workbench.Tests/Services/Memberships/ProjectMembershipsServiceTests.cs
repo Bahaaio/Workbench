@@ -7,7 +7,9 @@ using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Memberships.Models;
 using Workbench.Modules.Projects.Memberships.Services.Implementations;
+using Workbench.Modules.Projects.Models;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Memberships;
@@ -50,12 +52,13 @@ public class ProjectMembershipsServiceTests : IDisposable
         };
         var distinctUsers = users.GroupBy(u => u.Id).Select(g => g.First()).ToList();
         _db.Users.AddRange(distinctUsers);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = ProjectId,
             OwnerId = ownerId,
             Name = "Test",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }
@@ -67,7 +70,7 @@ public class ProjectMembershipsServiceTests : IDisposable
         {
             _db.Users.Add(new ApplicationUser { Id = userId, UserName = $"user{userId}" });
         }
-        _db.ProjectMemberships.Add(new Modules.Projects.Memberships.Models.ProjectMembership
+        _db.ProjectMemberships.Add(new ProjectMembership
         {
             ProjectId = ProjectId,
             UserId = userId,

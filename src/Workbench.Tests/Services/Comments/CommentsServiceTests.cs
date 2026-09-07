@@ -1,14 +1,18 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using Workbench.Common.Exceptions;
+using Workbench.Data;
 using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Requirements;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Comments.Dtos.Requests;
+using Workbench.Modules.Comments.Models;
 using Workbench.Modules.Comments.Services.Implementations;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
+using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Models;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Comments;
@@ -18,9 +22,9 @@ public class CommentsServiceTests : IDisposable
     private const int CurrentUserId = 123;
     private const string CurrentUsername = "test";
     private const int DefaultIssueId = 1;
-
-    private readonly Data.AppDbContext _db;
     private readonly Mock<IAuthorizationGuard> _authGuard;
+
+    private readonly AppDbContext _db;
     private readonly CommentsService _service;
 
     public CommentsServiceTests()
@@ -48,12 +52,13 @@ public class CommentsServiceTests : IDisposable
         _db.Users.Add(author);
         var owner = new ApplicationUser { Id = 1, UserName = "owner" };
         _db.Users.Add(owner);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = 1,
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public
         });
         _db.Issues.Add(new Issue
         {
@@ -61,7 +66,7 @@ public class CommentsServiceTests : IDisposable
             ProjectId = 1,
             Title = "Issue",
             AuthorId = 99,
-            Status = Status.Open,
+            Status = Status.Open
         });
         await _db.SaveChangesAsync();
     }
@@ -72,19 +77,19 @@ public class CommentsServiceTests : IDisposable
         await SeedIssue();
         var user = new ApplicationUser { Id = CurrentUserId, UserName = CurrentUsername };
         _db.Users.Add(user);
-        _db.Comments.Add(new Modules.Comments.Models.Comment
+        _db.Comments.Add(new Comment
         {
             Id = 1,
             IssueId = DefaultIssueId,
             AuthorId = CurrentUserId,
-            Content = "First",
+            Content = "First"
         });
-        _db.Comments.Add(new Modules.Comments.Models.Comment
+        _db.Comments.Add(new Comment
         {
             Id = 2,
             IssueId = DefaultIssueId,
             AuthorId = CurrentUserId,
-            Content = "Second",
+            Content = "Second"
         });
         await _db.SaveChangesAsync();
 
@@ -112,8 +117,8 @@ public class CommentsServiceTests : IDisposable
     [Fact]
     public async Task Create_DoesNotSave_WhenIssueDoesNotExist()
     {
-        await Assert.ThrowsAsync<NotFoundException>(
-            () => _service.Create(999, new CreateCommentRequest("content")));
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            _service.Create(999, new CreateCommentRequest("content")));
     }
 
     [Fact]
@@ -122,12 +127,12 @@ public class CommentsServiceTests : IDisposable
         await SeedIssue();
         var user = new ApplicationUser { Id = CurrentUserId, UserName = CurrentUsername };
         _db.Users.Add(user);
-        _db.Comments.Add(new Modules.Comments.Models.Comment
+        _db.Comments.Add(new Comment
         {
             Id = 1,
             IssueId = DefaultIssueId,
             AuthorId = CurrentUserId,
-            Content = "original",
+            Content = "original"
         });
         await _db.SaveChangesAsync();
 
@@ -144,21 +149,25 @@ public class CommentsServiceTests : IDisposable
         await SeedIssue();
         var otherUser = new ApplicationUser { Id = 999, UserName = "other" };
         _db.Users.Add(otherUser);
-        _db.Comments.Add(new Modules.Comments.Models.Comment
+        _db.Comments.Add(new Comment
         {
             Id = 1,
             IssueId = DefaultIssueId,
             AuthorId = 999,
-            Content = "protected",
+            Content = "protected"
         });
         await _db.SaveChangesAsync();
 
         _authGuard
-            .Setup(g => g.Authorize(It.IsAny<Modules.Comments.Models.Comment>(), It.IsAny<OwnerOrTeamMemberRequirement>()))
+            .Setup(g => g.Authorize(It.IsAny<Project>(), It.IsAny<ProjectLeadRequirement>()))
             .ThrowsAsync(new UnauthorizedAccessException("Not authorized"));
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => _service.Update(1, new UpdateCommentRequest("hijacked")));
+        _authGuard
+            .Setup(g => g.Authorize(It.IsAny<Comment>(), It.IsAny<OwnerOrTeamMemberRequirement>()))
+            .ThrowsAsync(new UnauthorizedAccessException("Not authorized"));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _service.Update(1, new UpdateCommentRequest("hijacked")));
 
         var comment = await _db.Comments.FindAsync(1);
         Assert.Equal("protected", comment!.Content);
@@ -170,12 +179,12 @@ public class CommentsServiceTests : IDisposable
         await SeedIssue();
         var user = new ApplicationUser { Id = CurrentUserId, UserName = CurrentUsername };
         _db.Users.Add(user);
-        _db.Comments.Add(new Modules.Comments.Models.Comment
+        _db.Comments.Add(new Comment
         {
             Id = 1,
             IssueId = DefaultIssueId,
             AuthorId = CurrentUserId,
-            Content = "bye",
+            Content = "bye"
         });
         await _db.SaveChangesAsync();
 
@@ -190,21 +199,20 @@ public class CommentsServiceTests : IDisposable
         await SeedIssue();
         var otherUser = new ApplicationUser { Id = 999, UserName = "other" };
         _db.Users.Add(otherUser);
-        _db.Comments.Add(new Modules.Comments.Models.Comment
+        _db.Comments.Add(new Comment
         {
             Id = 1,
             IssueId = DefaultIssueId,
             AuthorId = 999,
-            Content = "protected",
+            Content = "protected"
         });
         await _db.SaveChangesAsync();
 
         _authGuard
-            .Setup(g => g.Authorize(It.IsAny<Modules.Comments.Models.Comment>(), It.IsAny<OwnerOrTeamMemberRequirement>()))
+            .Setup(g => g.Authorize(It.IsAny<Comment>(), It.IsAny<OwnerOrTeamMemberRequirement>()))
             .ThrowsAsync(new UnauthorizedAccessException("Not authorized"));
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => _service.Delete(1));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.Delete(1));
 
         Assert.NotNull(await _db.Comments.FindAsync(1));
     }

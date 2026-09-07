@@ -2,12 +2,15 @@ using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Exceptions;
 using Workbench.Common.Enums;
+using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Kanban.Dtos.Requests;
 using Workbench.Modules.Kanban.Models;
 using Workbench.Modules.Kanban.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Models;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Kanban;
@@ -34,14 +37,15 @@ public class BoardCardsServiceTests : IDisposable
 
     private async Task SeedBoard(List<BoardColumn>? columns = null)
     {
-        var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+        var owner = new ApplicationUser { Id = 1, UserName = "owner" };
         _db.Users.Add(owner);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = ProjectId,
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
 
         var board = new Board
@@ -57,7 +61,7 @@ public class BoardCardsServiceTests : IDisposable
 
     private async Task SeedIssue(int issueId = IssueId)
     {
-        var author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" };
+        var author = new ApplicationUser { Id = 99, UserName = "author" };
         _db.Users.Add(author);
         _db.Issues.Add(new Issue
         {
@@ -192,7 +196,7 @@ public class BoardCardsServiceTests : IDisposable
     {
         await SeedBoard(columns: []);
 
-        var author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" };
+        var author = new ApplicationUser { Id = 99, UserName = "author" };
         _db.Users.Add(author);
         _db.Issues.Add(new Issue { Id = 1, ProjectId = ProjectId, Title = "I1", AuthorId = 99, Status = Status.Open });
         _db.Issues.Add(new Issue { Id = 2, ProjectId = ProjectId, Title = "I2", AuthorId = 99, Status = Status.Open });

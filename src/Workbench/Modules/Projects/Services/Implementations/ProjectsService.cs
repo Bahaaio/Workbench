@@ -58,7 +58,8 @@ public class ProjectsService : IProjectsService
         {
             OwnerId = _user.Id,
             Name = request.Name,
-            Description = request.Description
+            Description = request.Description,
+            Visibility = request.Visibility
         };
 
         _db.Projects.Add(project);

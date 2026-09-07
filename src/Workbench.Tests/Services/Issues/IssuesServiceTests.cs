@@ -3,12 +3,15 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Workbench.Common.Exceptions;
 using Workbench.Modules.Attachments.Services;
+using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Dtos.Requests;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Issues.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Memberships.Models;
 using Workbench.Modules.Projects.Models;
 using Workbench.Tests.Helpers;
 
@@ -47,9 +50,9 @@ public class IssuesServiceTests : IDisposable
 
     private async Task SeedProject(int projectId = ProjectId, int ownerId = 1)
     {
-        var owner = new Modules.Auth.Models.ApplicationUser { Id = ownerId, UserName = "owner" };
-        var currentUser = new Modules.Auth.Models.ApplicationUser { Id = CurrentUserId, UserName = "current" };
-        var author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" };
+        var owner = new ApplicationUser { Id = ownerId, UserName = "owner" };
+        var currentUser = new ApplicationUser { Id = CurrentUserId, UserName = "current" };
+        var author = new ApplicationUser { Id = 99, UserName = "author" };
         _db.Users.AddRange(owner, currentUser, author);
         _db.Projects.Add(new Project
         {
@@ -57,6 +60,7 @@ public class IssuesServiceTests : IDisposable
             OwnerId = ownerId,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }
@@ -196,5 +200,95 @@ public class IssuesServiceTests : IDisposable
         var result = await _service.GetCurrentUserIssues(new IssueQuery(null, null, null, null));
 
         Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetById_Throws_WhenPrivateAndNotMember()
+    {
+        await SeedProject();
+        _db.Projects.First(p => p.Id == ProjectId).Visibility = ProjectVisibility.Private;
+        await _db.SaveChangesAsync();
+
+        var issue = new Issue { Id = IssueId, ProjectId = ProjectId, Title = "Issue", AuthorId = 99, Status = Status.Open };
+        _db.Issues.Add(issue);
+        await _db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<ForbiddenException>(
+            () => _service.GetById(ProjectId, IssueId));
+    }
+
+    [Fact]
+    public async Task GetAll_ReturnsEmpty_WhenPrivateAndNotMember()
+    {
+        await SeedProject();
+        _db.Projects.First(p => p.Id == ProjectId).Visibility = ProjectVisibility.Private;
+        await _db.SaveChangesAsync();
+
+        var result = await _service.GetAll(ProjectId, new IssueQuery(null, null, null, null));
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetCurrentUserIssues_FiltersPrivateProjects_NonMember()
+    {
+        var owner = new ApplicationUser { Id = 1, UserName = "owner" };
+        var currentUser = new ApplicationUser { Id = CurrentUserId, UserName = "current" };
+        _db.Users.AddRange(owner, currentUser);
+
+        var publicProject = new Project
+        {
+            Id = 1, OwnerId = 1, Name = "Public", Description = null,
+            Visibility = ProjectVisibility.Public,
+        };
+        var privateProject = new Project
+        {
+            Id = 2, OwnerId = 1, Name = "Private", Description = null,
+            Visibility = ProjectVisibility.Private,
+        };
+        _db.Projects.AddRange(publicProject, privateProject);
+
+        _db.Issues.AddRange(
+            new Issue { Id = 1, ProjectId = 1, Title = "Public Issue", AuthorId = CurrentUserId, Status = Status.Open },
+            new Issue { Id = 2, ProjectId = 2, Title = "Private Issue", AuthorId = CurrentUserId, Status = Status.Open });
+        await _db.SaveChangesAsync();
+
+        var result = await _service.GetCurrentUserIssues(new IssueQuery(null, null, null, null));
+
+        Assert.Single(result);
+        Assert.Equal("Public Issue", result[0].Title);
+    }
+
+    [Fact]
+    public async Task GetCurrentUserIssues_ShowsPrivateProjects_Member()
+    {
+        var owner = new ApplicationUser { Id = 1, UserName = "owner" };
+        var currentUser = new ApplicationUser { Id = CurrentUserId, UserName = "current" };
+        _db.Users.AddRange(owner, currentUser);
+
+        var privateProject = new Project
+        {
+            Id = 1, OwnerId = 1, Name = "Private", Description = null,
+            Visibility = ProjectVisibility.Private,
+        };
+        _db.Projects.Add(privateProject);
+
+        _db.ProjectMemberships.Add(new ProjectMembership
+        {
+            ProjectId = 1,
+            UserId = CurrentUserId,
+            Role = ProjectMemberRole.Member,
+        });
+
+        _db.Issues.Add(new Issue
+        {
+            Id = 1, ProjectId = 1, Title = "Private Issue", AuthorId = CurrentUserId, Status = Status.Open,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _service.GetCurrentUserIssues(new IssueQuery(null, null, null, null));
+
+        Assert.Single(result);
+        Assert.Equal("Private Issue", result[0].Title);
     }
 }

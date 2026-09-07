@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Exceptions;
+using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Milestones.Dtos.Requests;
 using Workbench.Modules.Milestones.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Models;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Milestones;
@@ -28,14 +31,15 @@ public class MilestonesServiceTests : IDisposable
 
     private async Task SeedProject(int ownerId = 1)
     {
-        var owner = new Modules.Auth.Models.ApplicationUser { Id = ownerId, UserName = "owner" };
+        var owner = new ApplicationUser { Id = ownerId, UserName = "owner" };
         _db.Users.Add(owner);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = ProjectId,
             OwnerId = ownerId,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }
@@ -86,7 +90,7 @@ public class MilestonesServiceTests : IDisposable
     public async Task Create_Throws_WhenNotProjectLead()
     {
         await SeedProject();
-        _authGuard.Setup(g => g.Authorize(It.IsAny<Modules.Projects.Models.Project>(), It.IsAny<IAuthorizationRequirement>()))
+        _authGuard.Setup(g => g.Authorize(It.IsAny<Project>(), It.IsAny<IAuthorizationRequirement>()))
             .ThrowsAsync(new ForbiddenException("Not lead"));
 
         await Assert.ThrowsAsync<ForbiddenException>(
@@ -123,14 +127,15 @@ public class MilestonesServiceTests : IDisposable
     public async Task Update_Throws_WhenMilestoneNotInProject()
     {
         await SeedProject();
-        var otherOwner = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "other" };
+        var otherOwner = new ApplicationUser { Id = 99, UserName = "other" };
         _db.Users.Add(otherOwner);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = 99,
             OwnerId = 99,
             Name = "Other",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         var milestone = new Modules.Milestones.Models.Milestone
         {
@@ -171,14 +176,15 @@ public class MilestonesServiceTests : IDisposable
     public async Task Delete_Throws_WhenMilestoneNotInProject()
     {
         await SeedProject();
-        var otherOwner = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "other" };
+        var otherOwner = new ApplicationUser { Id = 99, UserName = "other" };
         _db.Users.Add(otherOwner);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = 99,
             OwnerId = 99,
             Name = "Other",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         var milestone = new Modules.Milestones.Models.Milestone
         {

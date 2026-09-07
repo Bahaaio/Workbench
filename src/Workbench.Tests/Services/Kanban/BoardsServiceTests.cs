@@ -1,8 +1,11 @@
 using Moq;
 using Workbench.Common.Exceptions;
+using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Kanban.Dtos;
 using Workbench.Modules.Kanban.Models;
 using Workbench.Modules.Kanban.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Models;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Kanban;
@@ -24,14 +27,15 @@ public class BoardsServiceTests : IDisposable
 
     private async Task SeedProject()
     {
-        var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+        var owner = new ApplicationUser { Id = 1, UserName = "owner" };
         _db.Users.Add(owner);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = ProjectId,
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }

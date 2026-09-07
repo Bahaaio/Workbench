@@ -1,11 +1,13 @@
 using Moq;
 using Workbench.Common.Exceptions;
+using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Issues.Services.Implementations;
 using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Models;
 using Workbench.Modules.Projects.Memberships.Dtos;
 using Workbench.Modules.Projects.Memberships.Services;
 using Workbench.Tests.Helpers;
@@ -45,12 +47,12 @@ public class IssueAssignmentsServiceTests : IDisposable
 
     private async Task SeedIssue(int? assignedToId = null, Status status = Status.Open)
     {
-        var author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" };
-        var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
-        var currentUser = new Modules.Auth.Models.ApplicationUser { Id = CurrentUserId, UserName = "current" };
-        var otherUser = new Modules.Auth.Models.ApplicationUser { Id = OtherUserId, UserName = "other" };
+        var author = new ApplicationUser { Id = 99, UserName = "author" };
+        var owner = new ApplicationUser { Id = 1, UserName = "owner" };
+        var currentUser = new ApplicationUser { Id = CurrentUserId, UserName = "current" };
+        var otherUser = new ApplicationUser { Id = OtherUserId, UserName = "other" };
         _db.Users.AddRange(author, owner, currentUser, otherUser);
-        var project = new Modules.Projects.Models.Project { Id = ProjectId, OwnerId = 1, Name = "P", Description = null };
+        var project = new Project { Id = ProjectId, OwnerId = 1, Name = "P", Description = null, Visibility = ProjectVisibility.Public };
         _db.Projects.Add(project);
         _db.Issues.Add(new Issue
         {

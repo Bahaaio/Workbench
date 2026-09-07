@@ -2,12 +2,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Workbench.Common.Exceptions;
+using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Issues.Dtos.Requests;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Issues.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Models;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Issues;
@@ -41,11 +44,11 @@ public class IssueStatusServiceTests : IDisposable
 
     private async Task SeedIssue(Status status = Status.Open)
     {
-        var author = new Modules.Auth.Models.ApplicationUser { Id = 99, UserName = "author" };
-        var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
-        var currentUser = new Modules.Auth.Models.ApplicationUser { Id = CurrentUserId, UserName = "current" };
+        var author = new ApplicationUser { Id = 99, UserName = "author" };
+        var owner = new ApplicationUser { Id = 1, UserName = "owner" };
+        var currentUser = new ApplicationUser { Id = CurrentUserId, UserName = "current" };
         _db.Users.AddRange(author, owner, currentUser);
-        var project = new Modules.Projects.Models.Project { Id = 1, OwnerId = 1, Name = "P", Description = null };
+        var project = new Project { Id = 1, OwnerId = 1, Name = "P", Description = null, Visibility = ProjectVisibility.Public };
         _db.Projects.Add(project);
         _db.Issues.Add(new Issue
         {

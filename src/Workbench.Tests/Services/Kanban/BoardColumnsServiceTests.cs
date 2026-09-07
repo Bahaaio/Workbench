@@ -2,10 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Moq;
 using Workbench.Common.Enums;
 using Workbench.Common.Exceptions;
+using Workbench.Modules.Auth.Models;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Kanban.Dtos.Requests;
 using Workbench.Modules.Kanban.Models;
 using Workbench.Modules.Kanban.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
+using Workbench.Modules.Projects.Models;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Kanban;
@@ -31,14 +34,15 @@ public class BoardColumnsServiceTests : IDisposable
 
     private async Task SeedBoard(List<BoardColumn>? columns = null)
     {
-        var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
+        var owner = new ApplicationUser { Id = 1, UserName = "owner" };
         _db.Users.Add(owner);
-        _db.Projects.Add(new Modules.Projects.Models.Project
+        _db.Projects.Add(new Project
         {
             Id = ProjectId,
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
 
         var board = new Board
