@@ -16,6 +16,10 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
             .IsRequired()
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+        builder.Property(c => c.UpdatedAt)
+            .IsRequired()
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
         builder.HasOne(c => c.Author)
             .WithMany(a => a.Comments)
             .HasForeignKey(c => c.AuthorId);

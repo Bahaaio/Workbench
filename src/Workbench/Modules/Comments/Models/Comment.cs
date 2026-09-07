@@ -13,6 +13,7 @@ public class Comment : IEntity<int>, IOwnedByUser, IBelongsToProject
 
     public required string Content { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     public required int AuthorId { get; set; }
     public ApplicationUser Author { get; set; } = null!;

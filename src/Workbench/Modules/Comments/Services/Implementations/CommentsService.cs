@@ -9,18 +9,18 @@ using Workbench.Modules.Comments.Dtos;
 using Workbench.Modules.Comments.Dtos.Requests;
 using Workbench.Modules.Comments.Mappers;
 using Workbench.Modules.Comments.Models;
-using Workbench.Modules.Issues.Models;
 
 namespace Workbench.Modules.Comments.Services.Implementations;
 
 public class CommentsService : ICommentsService
 {
-    private readonly AppDbContext _db;
     private readonly IAuthorizationGuard _authGuard;
+    private readonly AppDbContext _db;
     private readonly ILogger<CommentsService> _logger;
     private readonly ICurrentUser _user;
 
-    public CommentsService(AppDbContext dbContext, ICurrentUser user, ILogger<CommentsService> logger,
+    public CommentsService(AppDbContext dbContext, ICurrentUser user,
+        ILogger<CommentsService> logger,
         IAuthorizationGuard authGuard)
     {
         _db = dbContext;
@@ -64,16 +64,35 @@ public class CommentsService : ICommentsService
     public async Task<CommentDto> Update(int commentId, UpdateCommentRequest request)
     {
         var comment = await _db.Comments
-            .Where(c => c.Id == commentId)
-            .Include(c => c.Author)
-            .Include(c => c.Attachments)
-            .Include(c => c.Issue).ThenInclude(i => i.Project)
-            .SingleOrDefaultAsync()
-            ?? throw new NotFoundException($"Comment with id: {commentId} not found");
+                          .Where(c => c.Id == commentId)
+                          .Include(c => c.Author)
+                          .Include(c => c.Attachments)
+                          .Include(c => c.Issue).ThenInclude(i => i.Project)
+                          .SingleOrDefaultAsync()
+                      ?? throw new NotFoundException($"Comment with id: {commentId} not found");
 
-        await _authGuard.AuthorizeOwnerOrProjectMember(comment);
+        // Comment can only be edited within 5 mins, or by lead at any time 
+        var isLead = false;
+
+        try
+        {
+            await _authGuard.AuthorizeProjectLead(comment.Issue.Project);
+            isLead = true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+
+        if (!isLead)
+        {
+            if (DateTime.UtcNow - comment.CreatedAt > TimeSpan.FromMinutes(5))
+                throw new UnauthorizedAccessException(
+                    "Comment can only be edited within 5 minutes of creation.");
+            await _authGuard.AuthorizeOwnerOrProjectMember(comment);
+        }
 
         comment.Content = request.Content;
+        comment.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("User {userId} updated comment {commentId}", _user.Id, commentId);
@@ -84,12 +103,12 @@ public class CommentsService : ICommentsService
     public async Task Delete(int commentId)
     {
         var comment = await _db.Comments
-            .Where(c => c.Id == commentId)
-            .Include(c => c.Author)
-            .Include(c => c.Attachments)
-            .Include(c => c.Issue).ThenInclude(i => i.Project)
-            .SingleOrDefaultAsync()
-            ?? throw new NotFoundException($"Comment with id: {commentId} not found");
+                          .Where(c => c.Id == commentId)
+                          .Include(c => c.Author)
+                          .Include(c => c.Attachments)
+                          .Include(c => c.Issue).ThenInclude(i => i.Project)
+                          .SingleOrDefaultAsync()
+                      ?? throw new NotFoundException($"Comment with id: {commentId} not found");
 
         await _authGuard.AuthorizeOwnerOrProjectMember(comment);
 
