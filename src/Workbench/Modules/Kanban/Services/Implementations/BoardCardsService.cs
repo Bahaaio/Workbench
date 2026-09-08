@@ -4,19 +4,19 @@ using Workbench.Common.Extensions;
 using Workbench.Data;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
+using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Kanban.Dtos;
 using Workbench.Modules.Kanban.Dtos.Requests;
 using Workbench.Modules.Kanban.Mappers;
 using Workbench.Modules.Kanban.Models;
-using Workbench.Modules.Projects.Models;
 
 namespace Workbench.Modules.Kanban.Services.Implementations;
 
 public class BoardCardsService : IBoardCardsService
 {
     private const int TempPositionOffset = 1000;
-    private readonly AppDbContext _db;
     private readonly IAuthorizationGuard _authGuard;
+    private readonly AppDbContext _db;
 
     public BoardCardsService(AppDbContext dbContext, IAuthorizationGuard authGuard)
     {
@@ -33,9 +33,20 @@ public class BoardCardsService : IBoardCardsService
         if (board.Columns.SelectMany(c => c.Cards).Any(c => c.IssueId == request.IssueId))
             throw new ConflictException($"Issue {request.IssueId} is already on this board");
 
+        var issue = await _db.Issues.FindAsync(request.IssueId)
+                    ?? throw new NotFoundException($"Issue {request.IssueId} not found");
+
+        if (issue.Status == Status.Closed)
+            throw new ConflictException(
+                $"Issue {request.IssueId} is closed and cannot be added to the board");
+
         var column = board.Columns.FirstOrDefault(c => c.Id == request.ColumnId)
                      ?? throw new NotFoundException(
                          $"Column {request.ColumnId} not found in project {projectId}");
+
+        if (column.Cards.Count >= column.MaxCards)
+            throw new ConflictException(
+                $"Column {column.Id} has reached its maximum card limit of {column.MaxCards}");
 
         var maxPosition = column.Cards.Count > 0 ? column.Cards.Max(c => c.Position) : 0;
 
@@ -63,7 +74,8 @@ public class BoardCardsService : IBoardCardsService
         var card = board.Columns
                        .SelectMany(c => c.Cards)
                        .FirstOrDefault(c => c.Id == cardId)
-                   ?? throw new NotFoundException($"Card {cardId} not found in project {projectId}");
+                   ?? throw new NotFoundException(
+                       $"Card {cardId} not found in project {projectId}");
 
         _db.BoardCards.Remove(card);
         await _db.SaveChangesAsync();
@@ -78,13 +90,18 @@ public class BoardCardsService : IBoardCardsService
         var card = board.Columns
                        .SelectMany(c => c.Cards)
                        .FirstOrDefault(c => c.Id == cardId)
-                   ?? throw new NotFoundException($"Card {cardId} not found in project {projectId}");
+                   ?? throw new NotFoundException(
+                       $"Card {cardId} not found in project {projectId}");
 
         var targetColumn = board.Columns.FirstOrDefault(c => c.Id == request.ColumnId)
                            ?? throw new NotFoundException(
                                $"Column {request.ColumnId} not found in project {projectId}");
 
         var sourceColumn = board.Columns.First(c => c.Cards.Any(x => x.Id == cardId));
+
+        if (sourceColumn.Id != targetColumn.Id && targetColumn.Cards.Count >= targetColumn.MaxCards)
+            throw new ConflictException(
+                $"Column {targetColumn.Id} has reached its maximum card limit of {targetColumn.MaxCards}");
 
         var sourceCardIds = sourceColumn.Cards
             .Where(c => c.Id != cardId)

@@ -15,6 +15,11 @@ public class BoardColumn : IEntity<int>
     public required int Position { get; set; }
 
     /// <summary>
+    ///     The maximum number of cards that can be in this column.
+    /// </summary>
+    public required int MaxCards { get; set; }
+
+    /// <summary>
     ///     The color of the column, used for visual distinction in the UI.
     /// </summary>
     public required Color Color { get; set; }

@@ -8,15 +8,14 @@ using Workbench.Modules.Kanban.Dtos;
 using Workbench.Modules.Kanban.Dtos.Requests;
 using Workbench.Modules.Kanban.Mappers;
 using Workbench.Modules.Kanban.Models;
-using Workbench.Modules.Projects.Models;
 
 namespace Workbench.Modules.Kanban.Services.Implementations;
 
 public class BoardColumnsService : IBoardColumnsService
 {
     private const int TempPositionOffset = 1000;
-    private readonly AppDbContext _db;
     private readonly IAuthorizationGuard _authGuard;
+    private readonly AppDbContext _db;
 
     public BoardColumnsService(AppDbContext dbContext, IAuthorizationGuard authGuard)
     {
@@ -38,6 +37,7 @@ public class BoardColumnsService : IBoardColumnsService
             Description = request.Description,
             Color = request.Color,
             Position = maxPosition + 1,
+            MaxCards = request.MaxCards,
             BoardId = board.Id
         };
 
@@ -54,6 +54,7 @@ public class BoardColumnsService : IBoardColumnsService
         column.Name = request.Name;
         column.Description = request.Description;
         column.Color = request.Color;
+        column.MaxCards = request.MaxCards;
 
         await _db.SaveChangesAsync();
 

@@ -59,15 +59,16 @@ public class BoardColumnsServiceTests : IDisposable
     [Fact]
     public async Task Add_CreatesColumn_WithCorrectPosition()
     {
-        var col1 = new BoardColumn { Id = 1, Name = "C1", Description = null, Position = 1, Color = Color.Blue, BoardId = BoardId, Cards = [] };
-        var col2 = new BoardColumn { Id = 2, Name = "C2", Description = null, Position = 2, Color = Color.Blue, BoardId = BoardId, Cards = [] };
+        var col1 = new BoardColumn { Id = 1, Name = "C1", Description = null, Position = 1, Color = Color.Blue, BoardId = BoardId, MaxCards = 10, Cards = [] };
+        var col2 = new BoardColumn { Id = 2, Name = "C2", Description = null, Position = 2, Color = Color.Blue, BoardId = BoardId, MaxCards = 10, Cards = [] };
         await SeedBoard(columns: [col1, col2]);
 
         var result = await _service.Add(ProjectId, new CreateColumnRequest
         {
             Name = "New Col",
             Description = null,
-            Color = Color.Red
+            Color = Color.Red,
+            MaxCards = 10
         });
 
         Assert.Equal(3, result.Position);
@@ -82,7 +83,8 @@ public class BoardColumnsServiceTests : IDisposable
         {
             Name = "First",
             Description = null,
-            Color = Color.Blue
+            Color = Color.Blue,
+            MaxCards = 10
         });
 
         Assert.Equal(1, result.Position);
@@ -100,7 +102,8 @@ public class BoardColumnsServiceTests : IDisposable
             {
                 Name = "X",
                 Description = null,
-                Color = Color.Blue
+                Color = Color.Blue,
+                MaxCards = 10
             }));
     }
 
@@ -115,6 +118,7 @@ public class BoardColumnsServiceTests : IDisposable
             Position = 1,
             Color = Color.Blue,
             BoardId = BoardId,
+            MaxCards = 10,
             Cards = [],
         };
         await SeedBoard(columns: [column]);
@@ -123,7 +127,8 @@ public class BoardColumnsServiceTests : IDisposable
         {
             Name = "Updated",
             Description = "New",
-            Color = Color.Red
+            Color = Color.Red,
+            MaxCards = 10
         });
 
         Assert.Equal("Updated", result.Name);
@@ -141,7 +146,8 @@ public class BoardColumnsServiceTests : IDisposable
             {
                 Name = "X",
                 Description = null,
-                Color = Color.Blue
+                Color = Color.Blue,
+                MaxCards = 10
             }));
     }
 
@@ -156,6 +162,7 @@ public class BoardColumnsServiceTests : IDisposable
             Position = 1,
             Color = Color.Blue,
             BoardId = BoardId,
+            MaxCards = 10,
             Cards = [],
         };
         await SeedBoard(columns: [column]);
@@ -177,9 +184,9 @@ public class BoardColumnsServiceTests : IDisposable
     [Fact]
     public async Task Reorder_SetsFinalPositions()
     {
-        var col1 = new BoardColumn { Id = 1, Name = "C1", Description = null, Position = 1, Color = Color.Blue, BoardId = BoardId, Cards = [] };
-        var col2 = new BoardColumn { Id = 2, Name = "C2", Description = null, Position = 2, Color = Color.Blue, BoardId = BoardId, Cards = [] };
-        var col3 = new BoardColumn { Id = 3, Name = "C3", Description = null, Position = 3, Color = Color.Blue, BoardId = BoardId, Cards = [] };
+        var col1 = new BoardColumn { Id = 1, Name = "C1", Description = null, Position = 1, Color = Color.Blue, BoardId = BoardId, MaxCards = 10, Cards = [] };
+        var col2 = new BoardColumn { Id = 2, Name = "C2", Description = null, Position = 2, Color = Color.Blue, BoardId = BoardId, MaxCards = 10, Cards = [] };
+        var col3 = new BoardColumn { Id = 3, Name = "C3", Description = null, Position = 3, Color = Color.Blue, BoardId = BoardId, MaxCards = 10, Cards = [] };
         await SeedBoard(columns: [col1, col2, col3]);
 
         await _service.Reorder(ProjectId, new MoveColumnRequest { ColumnIds = [3, 1, 2] });

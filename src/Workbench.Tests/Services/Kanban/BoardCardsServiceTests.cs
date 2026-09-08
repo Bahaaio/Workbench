@@ -85,6 +85,7 @@ public class BoardCardsServiceTests : IDisposable
             Position = 1,
             Color = Color.Blue,
             BoardId = BoardId,
+            MaxCards = 10,
             Cards = [],
         };
         await SeedBoard(columns: [column]);
@@ -111,6 +112,7 @@ public class BoardCardsServiceTests : IDisposable
             Position = 1,
             Color = Color.Blue,
             BoardId = BoardId,
+            MaxCards = 10,
             Cards = [],
         };
         await SeedBoard(columns: [column]);
@@ -149,6 +151,142 @@ public class BoardCardsServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Add_Throws_WhenColumnFull()
+    {
+        var column = new BoardColumn
+        {
+            Id = ColumnId,
+            Name = "Col",
+            Description = null,
+            Position = 1,
+            Color = Color.Blue,
+            BoardId = BoardId,
+            MaxCards = 1,
+            Cards = [],
+        };
+        await SeedBoard(columns: [column]);
+        await SeedIssue();
+
+        var existingCard = new BoardCard
+        {
+            Id = 99,
+            Position = 1,
+            BoardId = BoardId,
+            ColumnId = ColumnId,
+            IssueId = IssueId,
+        };
+        _db.BoardCards.Add(existingCard);
+        await _db.SaveChangesAsync();
+
+        var issue2 = new Issue { Id = 200, ProjectId = ProjectId, Title = "I2", AuthorId = 99, Status = Status.Open };
+        _db.Issues.Add(issue2);
+        await _db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<ConflictException>(
+            () => _service.Add(ProjectId, new CreateCardRequest
+            {
+                IssueId = 200,
+                ColumnId = ColumnId
+            }));
+    }
+
+    [Fact]
+    public async Task Move_Throws_WhenTargetColumnFull()
+    {
+        var sourceColumn = new BoardColumn
+        {
+            Id = ColumnId,
+            Name = "Source",
+            Description = null,
+            Position = 1,
+            Color = Color.Blue,
+            BoardId = BoardId,
+            MaxCards = 10,
+            Cards = [],
+        };
+        var targetColumn = new BoardColumn
+        {
+            Id = 30,
+            Name = "Target",
+            Description = null,
+            Position = 2,
+            Color = Color.Red,
+            BoardId = BoardId,
+            MaxCards = 1,
+            Cards = [],
+        };
+        await SeedBoard(columns: [sourceColumn, targetColumn]);
+        await SeedIssue();
+        var author = new ApplicationUser { Id = 98, UserName = "author2" };
+        _db.Users.Add(author);
+        _db.Issues.Add(new Issue { Id = 200, ProjectId = ProjectId, Title = "I2", AuthorId = 98, Status = Status.Open });
+        await _db.SaveChangesAsync();
+
+        var card = new BoardCard
+        {
+            Id = 50,
+            Position = 1,
+            BoardId = BoardId,
+            ColumnId = ColumnId,
+            IssueId = IssueId,
+        };
+        var blocker = new BoardCard
+        {
+            Id = 51,
+            Position = 1,
+            BoardId = BoardId,
+            ColumnId = 30,
+            IssueId = 200,
+        };
+        _db.BoardCards.Add(card);
+        _db.BoardCards.Add(blocker);
+        await _db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<ConflictException>(
+            () => _service.Move(ProjectId, card.Id, new MoveCardRequest
+            {
+                ColumnId = 30,
+                Position = 0
+            }));
+    }
+
+    [Fact]
+    public async Task Move_Succeeds_WhenSameColumn()
+    {
+        var column = new BoardColumn
+        {
+            Id = ColumnId,
+            Name = "Col",
+            Description = null,
+            Position = 1,
+            Color = Color.Blue,
+            BoardId = BoardId,
+            MaxCards = 10,
+            Cards = [],
+        };
+        await SeedBoard(columns: [column]);
+        await SeedIssue();
+        var author = new ApplicationUser { Id = 97, UserName = "author3" };
+        _db.Users.Add(author);
+        _db.Issues.Add(new Issue { Id = 300, ProjectId = ProjectId, Title = "I3", AuthorId = 97, Status = Status.Open });
+        await _db.SaveChangesAsync();
+
+        var card1 = new BoardCard { Id = 10, Position = 1, BoardId = BoardId, ColumnId = ColumnId, IssueId = IssueId };
+        var card2 = new BoardCard { Id = 11, Position = 2, BoardId = BoardId, ColumnId = ColumnId, IssueId = 300 };
+        _db.BoardCards.Add(card1);
+        _db.BoardCards.Add(card2);
+        await _db.SaveChangesAsync();
+
+        var result = await _service.Move(ProjectId, card1.Id, new MoveCardRequest
+        {
+            ColumnId = ColumnId,
+            Position = 1
+        });
+
+        Assert.Equal(2, result.Position);
+    }
+
+    [Fact]
     public async Task Delete_RemovesCard()
     {
         var column = new BoardColumn
@@ -159,6 +297,7 @@ public class BoardCardsServiceTests : IDisposable
             Position = 1,
             Color = Color.Blue,
             BoardId = BoardId,
+            MaxCards = 10,
             Cards = [],
         };
         await SeedBoard(columns: [column]);
@@ -213,6 +352,7 @@ public class BoardCardsServiceTests : IDisposable
             Position = 1,
             Color = Color.Blue,
             BoardId = BoardId,
+            MaxCards = 10,
             Cards = [card1, card2, card3],
         };
         _db.BoardColumns.Add(column);

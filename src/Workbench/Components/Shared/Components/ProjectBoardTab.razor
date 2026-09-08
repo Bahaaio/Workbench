@@ -138,6 +138,7 @@ else
                       MaxLength="512"
                       FullWidth="true" Class="mb-4"/>
         <ColorPicker @bind-Value="_newColumnColor" Label="Color"/>
+        <MudNumericField @bind-Value="_newColumnMaxCards" Label="Max Cards" Min="1" Required="true"/>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="() => _addColumnDialogVisible = false">Cancel</MudButton>
@@ -157,6 +158,7 @@ else
                       MaxLength="512"
                       FullWidth="true" Class="mb-4"/>
         <ColorPicker @bind-Value="_editColumnColor" Label="Color"/>
+        <MudNumericField @bind-Value="_editColumnMaxCards" Label="Max Cards" Min="1" Required="true"/>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="() => _editColumnDialogVisible = false">Cancel</MudButton>
@@ -239,12 +241,14 @@ else
     private string _newColumnName = "";
     private string? _newColumnDescription;
     private Color _newColumnColor = Color.Blue;
+    private int _newColumnMaxCards = 10;
 
     private bool _editColumnDialogVisible;
     private int _editColumnId;
     private string _editColumnName = "";
     private string? _editColumnDescription;
     private Color _editColumnColor = Color.Blue;
+    private int _editColumnMaxCards = 10;
 
     private bool _addCardDialogVisible;
     private int _addCardColumnId;
@@ -286,6 +290,7 @@ else
         _newColumnName = "";
         _newColumnDescription = null;
         _newColumnColor = Color.Blue;
+        _newColumnMaxCards = 10;
         _addColumnDialogVisible = true;
     }
 
@@ -300,7 +305,8 @@ else
             {
                 Name = _newColumnName,
                 Description = _newColumnDescription,
-                Color = _newColumnColor
+                Color = _newColumnColor,
+                MaxCards = _newColumnMaxCards
             });
             _addColumnDialogVisible = false;
             Snackbar.Add("Column added", Severity.Success);
@@ -321,6 +327,7 @@ else
         _editColumnName = column.Name;
         _editColumnDescription = column.Description;
         _editColumnColor = column.Color;
+        _editColumnMaxCards = column.MaxCards;
         _editColumnDialogVisible = true;
     }
 
@@ -335,7 +342,8 @@ else
             {
                 Name = _editColumnName,
                 Description = _editColumnDescription,
-                Color = _editColumnColor
+                Color = _editColumnColor,
+                MaxCards = _editColumnMaxCards
             });
             _editColumnDialogVisible = false;
             Snackbar.Add("Column updated", Severity.Success);
