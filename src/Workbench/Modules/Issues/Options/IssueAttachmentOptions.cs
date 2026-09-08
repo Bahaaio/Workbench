@@ -1,10 +1,7 @@
-using Workbench.Common.Options;
-using Workbench.Modules.Attachments;
 using Workbench.Modules.Attachments.Options;
 
 namespace Workbench.Modules.Issues.Options;
 
-public class IssueAttachmentOptions : AttachmentOptions, IKeyableOptions
+public class IssueAttachmentOptions : AttachmentOptions
 {
-    public static string Key => $"{BaseKey}:Issues";
 }

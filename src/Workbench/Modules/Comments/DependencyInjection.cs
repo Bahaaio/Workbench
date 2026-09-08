@@ -1,4 +1,3 @@
-using Workbench.Common.Extensions;
 using Workbench.Modules.Attachments.Services;
 using Workbench.Modules.Comments.Models;
 using Workbench.Modules.Comments.Options;
@@ -16,7 +15,10 @@ public static class DependencyInjection
             services.AddScoped<ICommentsService, CommentsService>();
             services.AddScoped<IAttachmentsService<Comment>, CommentAttachmentsService>();
 
-            services.AddKeyableOptions<CommentAttachmentOptions>();
+            services.AddOptions<CommentAttachmentOptions>()
+                .BindConfiguration("Attachments:Comments")
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
         }
     }
 }

@@ -8,11 +8,6 @@ namespace Workbench.Modules.Attachments.Options;
 public abstract class AttachmentOptions
 {
     /// <summary>
-    ///     Base key for all attachment options.
-    /// </summary>
-    protected const string BaseKey = "Attachments";
-
-    /// <summary>
     ///     The maximum allowed file size for attachments in bytes.
     /// </summary>
     [Range(1, long.MaxValue)]

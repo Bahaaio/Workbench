@@ -4,7 +4,6 @@ using Workbench.Modules.Issues.Options;
 using Workbench.Modules.Issues.Services;
 using Workbench.Modules.Issues.Services.Implementations;
 using Workbench.Modules.Issues.Votes;
-using Workbench.Common.Extensions;
 
 namespace Workbench.Modules.Issues;
 
@@ -20,7 +19,10 @@ public static class DependencyInjection
             services.AddScoped<IIssueStatusService, IssueStatusService>();
             services.AddScoped<IAttachmentsService<Issue>, IssueAttachmentsService>();
 
-            services.AddKeyableOptions<IssueAttachmentOptions>();
+            services.AddOptions<IssueAttachmentOptions>()
+                .BindConfiguration("Attachments:Issues")
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
 
             services.AddIssueVotesModule();
         }
