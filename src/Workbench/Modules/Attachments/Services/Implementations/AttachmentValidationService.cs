@@ -1,4 +1,5 @@
 using Workbench.Common.Exceptions;
+using Workbench.Modules.Attachments;
 using Workbench.Modules.Attachments.Options;
 
 namespace Workbench.Modules.Attachments.Services.Implementations;
@@ -12,9 +13,9 @@ public class AttachmentValidationService : IAttachmentValidationService
         _logger = logger;
     }
 
-    public void Validate(IFormFile file, AttachmentOptions options)
+    public void Validate(IFormFile file, AttachmentOptions options, long maxSizeBytes)
     {
-        ValidateSize(file, options);
+        ValidateSize(file, maxSizeBytes);
         ValidateExtension(file, options);
     }
 
@@ -35,7 +36,7 @@ public class AttachmentValidationService : IAttachmentValidationService
         }
     }
 
-    private void ValidateSize(IFormFile file, AttachmentOptions options)
+    private void ValidateSize(IFormFile file, long maxSizeBytes)
     {
         if (file.Length == 0)
         {
@@ -43,10 +44,10 @@ public class AttachmentValidationService : IAttachmentValidationService
             throw new BadRequestException("File cannot be empty");
         }
 
-        if (file.Length > options.MaxSizeBytes)
+        if (file.Length > maxSizeBytes)
         {
             _logger.LogWarning("File size exceeds maximum allowed: {Size}", file.Length);
-            throw new BadRequestException($"File cannot exceed {options.MaxSizeBytes} bytes");
+            throw new BadRequestException($"File cannot exceed {maxSizeBytes} bytes");
         }
     }
 }

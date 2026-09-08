@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Workbench.Common.Exceptions;
 using Workbench.Common.Extensions;
 using Workbench.Common.Models;
@@ -10,6 +9,7 @@ using Workbench.Modules.Attachments.Models;
 using Workbench.Modules.Attachments.Options;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Models;
+using Workbench.Modules.Projects.Enums;
 using Workbench.Modules.Storage.Services;
 
 namespace Workbench.Modules.Attachments.Services.Implementations;
@@ -24,7 +24,7 @@ namespace Workbench.Modules.Attachments.Services.Implementations;
 /// <typeparam name="TParent">The parent resource that owns attachments.</typeparam>
 /// <typeparam name="TAttachment">The attachment type.</typeparam>
 public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsService<TParent>
-    where TParent : class, IEntity<int>
+    where TParent : class, IEntity<int>, IBelongsToProject
     where TAttachment : Attachment, IHasParent<TParent>, new()
 {
     private readonly IAttachmentValidationService _attachmentValidationService;
@@ -55,8 +55,9 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
 
     public virtual async Task<AttachmentDto> Add(int parentId, IFormFile file)
     {
-        _attachmentValidationService.Validate(file, AttachmentOptions);
-        await _parentSet.ExistsOrThrowAsync(parentId);
+        var parent = await _parentSet.FindOrThrowAsync(parentId);
+        var maxSize = GetMaxSizeBytes(parent.ProjectId);
+        _attachmentValidationService.Validate(file, AttachmentOptions, maxSize);
 
         var count = await _attachmentSet.CountAsync(a => a.ParentId == parentId);
         _attachmentValidationService.ValidateCount(count + 1, AttachmentOptions.MaxCount);
@@ -106,7 +107,7 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
             await _storageService.DeleteFile(key);
     }
 
-    protected Task<TParent> GetOwnerEntity(int parentId) =>
+    protected virtual Task<TParent> GetOwnerEntity(int parentId) =>
         _parentSet.FindOrThrowAsync(parentId);
 
     protected async Task<TParent> GetOwnerEntity(Guid attachmentId)
@@ -118,5 +119,13 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
             ?? throw new NotFoundException($"Attachment with id: {attachmentId} not found");
 
         return await _parentSet.FindOrThrowAsync(parentId);
+    }
+
+    private long GetMaxSizeBytes(int projectId)
+    {
+        var isLead = _db.ProjectMemberships
+            .Any(m => m.ProjectId == projectId && m.UserId == _user.Id && m.Role == ProjectMemberRole.Lead);
+
+        return isLead ? AttachmentOptions.MaxSizeBytesLead : AttachmentOptions.MaxSizeBytesMember;
     }
 }

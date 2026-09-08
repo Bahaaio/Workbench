@@ -25,12 +25,12 @@ public class AttachmentValidationServiceTests
     }
 
     private static AttachmentOptions MakeOptions(
-        long maxSize = 1024 * 1024,
         int maxCount = 10,
         List<string>? extensions = null) =>
         new TestAttachmentOptions
         {
-            MaxSizeBytes = maxSize,
+            MaxSizeBytesLead = 1024 * 1024,
+            MaxSizeBytesMember = 512,
             MaxCount = maxCount,
             AllowedExtensions = extensions ?? [".pdf", ".jpg", ".png"]
         };
@@ -41,7 +41,7 @@ public class AttachmentValidationServiceTests
         var file = MakeFile(length: 100, fileName: "doc.pdf");
         var options = MakeOptions();
 
-        _service.Validate(file, options);
+        _service.Validate(file, options, 1024);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class AttachmentValidationServiceTests
         var file = MakeFile(length: 0);
         var options = MakeOptions();
 
-        var ex = Assert.Throws<BadRequestException>(() => _service.Validate(file, options));
+        var ex = Assert.Throws<BadRequestException>(() => _service.Validate(file, options, 1024));
         Assert.Contains("empty", ex.Message);
     }
 
@@ -58,9 +58,9 @@ public class AttachmentValidationServiceTests
     public void Validate_Throws_WhenFileSizeExceedsMax()
     {
         var file = MakeFile(length: 2048);
-        var options = MakeOptions(maxSize: 1024);
+        var options = MakeOptions();
 
-        var ex = Assert.Throws<BadRequestException>(() => _service.Validate(file, options));
+        var ex = Assert.Throws<BadRequestException>(() => _service.Validate(file, options, 1024));
         Assert.Contains("1024", ex.Message);
     }
 
@@ -70,7 +70,7 @@ public class AttachmentValidationServiceTests
         var file = MakeFile(fileName: "script.exe");
         var options = MakeOptions();
 
-        var ex = Assert.Throws<BadRequestException>(() => _service.Validate(file, options));
+        var ex = Assert.Throws<BadRequestException>(() => _service.Validate(file, options, 1024));
         Assert.Contains("extension", ex.Message);
     }
 
@@ -80,7 +80,7 @@ public class AttachmentValidationServiceTests
         var file = MakeFile(fileName: "image.jpg");
         var options = MakeOptions(extensions: [".jpg", ".png"]);
 
-        _service.Validate(file, options);
+        _service.Validate(file, options, 1024);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class AttachmentValidationServiceTests
         var file = MakeFile(fileName: "doc.PDF");
         var options = MakeOptions(extensions: [".pdf"]);
 
-        var ex = Assert.Throws<BadRequestException>(() => _service.Validate(file, options));
+        var ex = Assert.Throws<BadRequestException>(() => _service.Validate(file, options, 1024));
         Assert.Contains("extension", ex.Message);
     }
 
@@ -99,7 +99,7 @@ public class AttachmentValidationServiceTests
         var file = MakeFile(fileName: "doc.pdf");
         var options = MakeOptions(extensions: [".pdf"]);
 
-        _service.Validate(file, options);
+        _service.Validate(file, options, 1024);
     }
 
     [Fact]

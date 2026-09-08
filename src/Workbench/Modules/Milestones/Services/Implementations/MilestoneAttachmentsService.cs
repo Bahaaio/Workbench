@@ -37,6 +37,7 @@ public class MilestoneAttachmentsService : AttachmentsService<Milestone, Milesto
     {
         var milestone = await GetOwnerEntity(parentId);
         await _authGuard.AuthorizeProjectLead(milestone);
+
         return await base.Add(parentId, file);
     }
 

@@ -13,10 +13,16 @@ public abstract class AttachmentOptions
     protected const string BaseKey = "Attachments";
 
     /// <summary>
-    ///     The maximum allowed file size for attachments in bytes.
+    ///     The maximum allowed file size for project leads in bytes.
     /// </summary>
     [Range(1, long.MaxValue)]
-    public long MaxSizeBytes { get; set; }
+    public long MaxSizeBytesLead { get; set; }
+
+    /// <summary>
+    ///     The maximum allowed file size for project members in bytes.
+    /// </summary>
+    [Range(1, long.MaxValue)]
+    public long MaxSizeBytesMember { get; set; }
 
     /// <summary>
     ///     The maximum number of attachments allowed per issue.

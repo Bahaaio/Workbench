@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Workbench.Data;
 using Workbench.Modules.Attachments.Dtos;
@@ -16,6 +17,7 @@ namespace Workbench.Modules.Comments.Services.Implementations;
 public class CommentAttachmentsService : AttachmentsService<Comment, CommentAttachment>
 {
     private readonly IAuthorizationGuard _authGuard;
+    private readonly AppDbContext _db;
 
     public CommentAttachmentsService(
         IStorageService storageService,
@@ -29,10 +31,17 @@ public class CommentAttachmentsService : AttachmentsService<Comment, CommentAtta
             attachmentValidationService)
     {
         _authGuard = authGuard;
+        _db = dbContext;
         AttachmentOptions = attachmentOptions.Value;
     }
 
     protected override AttachmentOptions AttachmentOptions { get; }
+
+    protected override Task<Comment> GetOwnerEntity(int parentId) =>
+        _db.Comments
+            .Include(c => c.Issue)
+            .SingleOrDefaultAsync(c => c.Id == parentId)
+            ?? throw new Common.Exceptions.NotFoundException($"Comment with id {parentId} not found");
 
     public override async Task<AttachmentDto> Add(int parentId, IFormFile file)
     {

@@ -21,7 +21,7 @@ public class MilestoneAttachmentsClient : IMilestoneAttachmentsClient
 
     public async Task<AttachmentDto> Add(int milestoneId, IBrowserFile file)
     {
-        await using var source = file.OpenReadStream(_options.MaxSizeBytes);
+        await using var source = file.OpenReadStream(_options.MaxSizeBytesLead);
         await using var stream = new MemoryStream();
         await source.CopyToAsync(stream);
         stream.Position = 0;

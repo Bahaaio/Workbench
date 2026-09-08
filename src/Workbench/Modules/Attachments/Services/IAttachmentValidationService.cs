@@ -14,8 +14,9 @@ public interface IAttachmentValidationService
     /// </summary>
     /// <param name="file">The file to validate.</param>
     /// <param name="options">The attachment options to use for validation.</param>
+    /// <param name="maxSizeBytes">The maximum file size in bytes.</param>
     /// <exception cref="BadRequestException">Thrown on validation failure</exception>
-    void Validate(IFormFile file, AttachmentOptions options);
+    void Validate(IFormFile file, AttachmentOptions options, long maxSizeBytes);
 
     /// <summary>
     ///     Validates the number of attachments allowed per context (e.g., issue).

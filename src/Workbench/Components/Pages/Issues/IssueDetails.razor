@@ -679,7 +679,7 @@ else
             {
                 try
                 {
-                    using var stream = file.OpenReadStream(IssueAttachmentOptions.Value.MaxSizeBytes);
+                    using var stream = file.OpenReadStream(IssueAttachmentOptions.Value.MaxSizeBytesLead);
                     using var ms = new MemoryStream();
                     await stream.CopyToAsync(ms);
                     _editPreviewUrls[file] = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
@@ -958,7 +958,7 @@ else
             return;
         }
 
-        var maxSizeBytes = CommentAttachmentOptions.Value.MaxSizeBytes;
+        var maxSizeBytes = CommentAttachmentOptions.Value.MaxSizeBytesLead;
         if (file.Size > maxSizeBytes)
         {
             Snackbar.Add($"Image must be {maxSizeBytes / 1024 / 1024} MB or smaller", Severity.Error);

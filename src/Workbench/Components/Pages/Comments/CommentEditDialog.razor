@@ -62,7 +62,7 @@
 
         <MudText Typo="Typo.caption" Color="Color.Default" Class="mt-2 text-center">
             Optional image (@string.Join(", ", CommentAttachmentOptions.Value.AllowedExtensions)),
-            max @(CommentAttachmentOptions.Value.MaxSizeBytes / 1024 / 1024) MB.
+             max @(CommentAttachmentOptions.Value.MaxSizeBytesLead / 1024 / 1024) MB.
         </MudText>
     </DialogContent>
     <DialogActions>
@@ -123,7 +123,7 @@
             return;
         }
 
-        var maxSizeBytes = CommentAttachmentOptions.Value.MaxSizeBytes;
+        var maxSizeBytes = CommentAttachmentOptions.Value.MaxSizeBytesLead;
         if (file.Size > maxSizeBytes)
         {
             Snackbar.Add($"Image must be {maxSizeBytes / 1024 / 1024} MB or smaller", Severity.Error);
