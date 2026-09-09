@@ -14,6 +14,7 @@ public static class ColumnMapper
         Name = c.Name,
         Position = c.Position,
         Description = c.Description,
+        MaxCards = c.MaxCards,
         Color = c.Color,
         Cards = c.Cards
             .AsQueryable()

@@ -38,6 +38,7 @@ public class BoardColumnsService : IBoardColumnsService
             Description = request.Description,
             Color = request.Color,
             Position = maxPosition + 1,
+            MaxCards = request.MaxCards,
             BoardId = board.Id
         };
 
@@ -54,6 +55,7 @@ public class BoardColumnsService : IBoardColumnsService
         column.Name = request.Name;
         column.Description = request.Description;
         column.Color = request.Color;
+        column.MaxCards = request.MaxCards;
 
         await _db.SaveChangesAsync();
 
