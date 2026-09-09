@@ -10,6 +10,7 @@ public static class DependencyInjection
         public void AddStorageModule()
         {
             services.AddScoped<IStorageService, LocalStorageService>();
+            services.AddKeyedScoped<IStorageService, CloudStorageService>("cloud");
         }
     }
 }

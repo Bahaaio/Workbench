@@ -18,7 +18,7 @@ public class MilestoneAttachmentsService : AttachmentsService<Milestone, Milesto
     private readonly IAuthorizationGuard _authGuard;
 
     public MilestoneAttachmentsService(
-        IStorageService storageService,
+        [FromKeyedServices("cloud")] IStorageService storageService,
         AppDbContext dbContext,
         ICurrentUser user,
         ILogger<MilestoneAttachmentsService> logger,
