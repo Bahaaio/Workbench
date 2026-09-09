@@ -14,8 +14,6 @@ public static class UiExtensions
             services.AddMudServices();
             services.AddScoped<IAuthState, AuthState>();
             services.AddScoped<IProjectMembershipState, ProjectMembershipState>();
-            services.AddScoped<IIssueAttachmentsClient, IssueAttachmentsClient>();
-            services.AddScoped<ICommentAttachmentsClient, CommentAttachmentsClient>();
         }
     }
 }

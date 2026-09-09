@@ -1,11 +1,14 @@
 @using Workbench.ClientServices
+@using Workbench.Extensions
+@using Workbench.Modules.Attachments.Services
 @using Workbench.Modules.Issues.Dtos.Requests
+@using Workbench.Modules.Issues.Models
 @using Workbench.Modules.Issues.Options
 @using Workbench.Modules.Issues.Services
 @rendermode InteractiveServer
 @inject IIssuesService IssuesService
 @inject IIssueTagsService IssueTagsService
-@inject IIssueAttachmentsClient AttachmentsClient
+@inject IAttachmentsService<Issue> AttachmentsService
 @inject IOptions<IssueAttachmentOptions> IssueAttachmentOptions
 @inject ISnackbar Snackbar
 
@@ -97,7 +100,12 @@
             {
                 foreach (var file in _files)
                 {
-                    try { await AttachmentsClient.Add(issue.Id, file); }
+                    try
+                    {
+                        var maxSize = IssueAttachmentOptions.Value.MaxSizeBytes;
+                        var formFile = await file.ToFormFile(maxSize);
+                        await AttachmentsService.Add(issue.Id, formFile);
+                    }
                     catch { }
                 }
             }

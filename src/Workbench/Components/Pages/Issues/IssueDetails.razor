@@ -5,7 +5,10 @@
 @using Workbench.Modules.Comments.Dtos
 @using Workbench.Modules.Comments.Dtos.Requests
 @using Workbench.Modules.Comments.Options
+@using Workbench.Modules.Comments.Models
 @using Workbench.Modules.Comments.Services
+@using Workbench.Modules.Attachments.Services
+@using Workbench.Modules.Issues.Models
 @using Workbench.Modules.Issues.Dtos
 @using Workbench.Modules.Issues.Dtos.Requests
 @using Workbench.Modules.Issues.Enums
@@ -17,6 +20,7 @@
 @using Workbench.Modules.Projects.Memberships.Dtos
 @using Workbench.Modules.Projects.Memberships.Services
 @using Workbench.Modules.Projects.Services
+@using Workbench.Extensions
 @rendermode InteractiveServer
 @inject IIssuesService IssuesService
 @inject IProjectsService ProjectsService
@@ -24,8 +28,8 @@
 @inject IVotesService VotesService
 @inject ICommentsService CommentsService
 @inject IIssueTagsService IssueTagsService
-@inject IIssueAttachmentsClient AttachmentsClient
-@inject ICommentAttachmentsClient CommentAttachmentsClient
+@inject IAttachmentsService<Issue> IssueAttachmentsService
+@inject IAttachmentsService<Comment> CommentAttachmentsService
 @inject IOptions<CommentAttachmentOptions> CommentAttachmentOptions
 @inject IOptions<IssueAttachmentOptions> IssueAttachmentOptions
 @inject IIssueAssignmentsService IssueAssignmentsService
@@ -727,7 +731,7 @@ else
             {
                 try
                 {
-                    await AttachmentsClient.Delete(Id, attachmentId);
+                    await IssueAttachmentsService.Delete(attachmentId);
                 }
                 catch
                 {
@@ -740,7 +744,9 @@ else
                 {
                     try
                     {
-                        await AttachmentsClient.Add(Id, file);
+                        var maxSize = IssueAttachmentOptions.Value.MaxSizeBytes;
+                        var formFile = await file.ToFormFile(maxSize);
+                        await IssueAttachmentsService.Add(Id, formFile);
                     }
                     catch
                     {
@@ -769,7 +775,7 @@ else
     {
         try
         {
-            await AttachmentsClient.Delete(Id, attachmentId);
+            await IssueAttachmentsService.Delete(attachmentId);
             var refreshed = await IssuesService.GetById(ProjectId, Id);
             _issue = refreshed;
             _attachments = _issue.Attachments;
@@ -919,7 +925,9 @@ else
             {
                 try
                 {
-                    var attachment = await CommentAttachmentsClient.Add(comment.Id, _newCommentImage);
+                    var maxSize = CommentAttachmentOptions.Value.MaxSizeBytes;
+                    var formFile = await _newCommentImage.ToFormFile(maxSize);
+                    var attachment = await CommentAttachmentsService.Add(comment.Id, formFile);
                     comment = comment with { Attachments = [attachment] };
                 }
                 catch (Exception ex)

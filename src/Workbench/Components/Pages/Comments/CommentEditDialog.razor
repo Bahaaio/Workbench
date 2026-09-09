@@ -2,8 +2,11 @@
 @using Workbench.Modules.Comments.Dtos.Requests
 @using Workbench.Modules.Comments.Options
 @using Workbench.Modules.Comments.Services
+@using Workbench.Modules.Attachments.Services
+@using Workbench.Modules.Comments.Models
+@using Workbench.Extensions
 @inject ICommentsService CommentsService
-@inject ICommentAttachmentsClient AttachmentsClient
+@inject IAttachmentsService<Comment> AttachmentsService
 @inject IOptions<CommentAttachmentOptions> CommentAttachmentOptions
 @inject ISnackbar Snackbar
 
@@ -170,16 +173,18 @@
 
             if (_removeImage && _hasImage)
             {
-                await AttachmentsClient.Delete(Comment.Id, Comment.Attachments[0].AttachmentId);
+                await AttachmentsService.Delete(Comment.Attachments[0].AttachmentId);
                 updated = updated with { Attachments = [] };
                 Snackbar.Add("Image removed", Severity.Success);
             }
             else if (_selectedFile is not null)
             {
                 if (_hasImage)
-                    await AttachmentsClient.Delete(Comment.Id, Comment.Attachments[0].AttachmentId);
+                    await AttachmentsService.Delete(Comment.Attachments[0].AttachmentId);
 
-                var added = await AttachmentsClient.Add(Comment.Id, _selectedFile);
+                var maxSize = CommentAttachmentOptions.Value.MaxSizeBytes;
+                var formFile = await _selectedFile.ToFormFile(maxSize);
+                var added = await AttachmentsService.Add(Comment.Id, formFile);
                 updated = updated with { Attachments = [added] };
                 Snackbar.Add(_hasImage ? "Image replaced" : "Image attached", Severity.Success);
             }
