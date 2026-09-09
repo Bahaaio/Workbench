@@ -16,6 +16,7 @@ namespace Workbench.Modules.Issues.Services.Implementations;
 public class IssueAttachmentsService : AttachmentsService<Issue, IssueAttachment>
 {
     private readonly IAuthorizationGuard _authGuard;
+    private readonly IssueAttachmentOptions _options;
 
     public IssueAttachmentsService(
         IStorageService storageService,
@@ -29,10 +30,12 @@ public class IssueAttachmentsService : AttachmentsService<Issue, IssueAttachment
             attachmentValidationService)
     {
         _authGuard = authGuard;
-        AttachmentOptions = attachmentOptions.Value;
+        _options = attachmentOptions.Value;
     }
 
-    protected override AttachmentOptions AttachmentOptions { get; }
+    protected override AttachmentOptions AttachmentOptions => _options;
+
+    protected override AttachmentOptions GetResolvedOptions(Issue parent) => _options;
 
     public override async Task<AttachmentDto> Add(int parentId, IFormFile file)
     {

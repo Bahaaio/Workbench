@@ -53,13 +53,16 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
 
     protected abstract AttachmentOptions AttachmentOptions { get; }
 
+    protected abstract AttachmentOptions GetResolvedOptions(TParent parent);
+
     public virtual async Task<AttachmentDto> Add(int parentId, IFormFile file)
     {
-        _attachmentValidationService.Validate(file, AttachmentOptions);
-        await _parentSet.ExistsOrThrowAsync(parentId);
+        var parent = await _parentSet.FindOrThrowAsync(parentId);
+        var options = GetResolvedOptions(parent);
+        _attachmentValidationService.Validate(file, options);
 
         var count = await _attachmentSet.CountAsync(a => a.ParentId == parentId);
-        _attachmentValidationService.ValidateCount(count + 1, AttachmentOptions.MaxCount);
+        _attachmentValidationService.ValidateCount(count + 1, options.MaxCount);
 
         var guid = Guid.NewGuid();
         await _storageService.Store(file, guid.ToString());
@@ -106,7 +109,7 @@ public abstract class AttachmentsService<TParent, TAttachment> : IAttachmentsSer
             await _storageService.DeleteFile(key);
     }
 
-    protected Task<TParent> GetOwnerEntity(int parentId) =>
+    protected virtual Task<TParent> GetOwnerEntity(int parentId) =>
         _parentSet.FindOrThrowAsync(parentId);
 
     protected async Task<TParent> GetOwnerEntity(Guid attachmentId)
