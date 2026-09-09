@@ -50,7 +50,7 @@ public class IssueAssignmentsServiceTests : IDisposable
         var currentUser = new Modules.Auth.Models.ApplicationUser { Id = CurrentUserId, UserName = "current" };
         var otherUser = new Modules.Auth.Models.ApplicationUser { Id = OtherUserId, UserName = "other" };
         _db.Users.AddRange(author, owner, currentUser, otherUser);
-        var project = new Modules.Projects.Models.Project { Id = ProjectId, OwnerId = 1, Name = "P", Description = null };
+        var project = new Modules.Projects.Models.Project { Id = ProjectId, OwnerId = 1, Name = "P", Description = null, Visibility = ProjectVisibility.Public };
         _db.Projects.Add(project);
         _db.Issues.Add(new Issue
         {

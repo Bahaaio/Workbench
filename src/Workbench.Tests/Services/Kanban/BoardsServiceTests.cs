@@ -3,6 +3,7 @@ using Workbench.Common.Exceptions;
 using Workbench.Modules.Kanban.Dtos;
 using Workbench.Modules.Kanban.Models;
 using Workbench.Modules.Kanban.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Kanban;
@@ -32,6 +33,7 @@ public class BoardsServiceTests : IDisposable
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }

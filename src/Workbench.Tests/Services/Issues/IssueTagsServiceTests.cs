@@ -7,6 +7,7 @@ using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Issues.Services.Implementations;
 using Workbench.Modules.Tags.Models;
+using Workbench.Modules.Projects.Enums;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Issues;
@@ -39,6 +40,7 @@ public class IssueTagsServiceTests : IDisposable
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }
@@ -51,7 +53,7 @@ public class IssueTagsServiceTests : IDisposable
         {
             var owner = new Modules.Auth.Models.ApplicationUser { Id = 1, UserName = "owner" };
             _db.Users.Add(owner);
-            _db.Projects.Add(new Modules.Projects.Models.Project { Id = ProjectId, OwnerId = 1, Name = "P", Description = null });
+            _db.Projects.Add(new Modules.Projects.Models.Project { Id = ProjectId, OwnerId = 1, Name = "P", Description = null, Visibility = ProjectVisibility.Public });
         }
         var issue = new Issue
         {

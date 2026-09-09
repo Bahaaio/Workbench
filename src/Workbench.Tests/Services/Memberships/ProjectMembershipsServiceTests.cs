@@ -56,6 +56,7 @@ public class ProjectMembershipsServiceTests : IDisposable
             OwnerId = ownerId,
             Name = "Test",
             Description = null,
+            Visibility = Modules.Projects.Enums.ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }

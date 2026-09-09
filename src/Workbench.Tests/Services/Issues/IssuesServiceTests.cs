@@ -9,6 +9,7 @@ using Workbench.Modules.Issues.Dtos.Requests;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Issues.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
 using Workbench.Modules.Projects.Models;
 using Workbench.Tests.Helpers;
 
@@ -57,6 +58,7 @@ public class IssuesServiceTests : IDisposable
             OwnerId = ownerId,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }

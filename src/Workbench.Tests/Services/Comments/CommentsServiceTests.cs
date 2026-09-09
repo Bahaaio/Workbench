@@ -9,6 +9,7 @@ using Workbench.Modules.Comments.Dtos.Requests;
 using Workbench.Modules.Comments.Services.Implementations;
 using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
+using Workbench.Modules.Projects.Enums;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Comments;
@@ -54,6 +55,7 @@ public class CommentsServiceTests : IDisposable
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         _db.Issues.Add(new Issue
         {

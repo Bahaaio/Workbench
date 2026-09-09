@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Workbench.Modules.Projects.Enums;
 using Workbench.Modules.Projects.Models;
 
 namespace Workbench.Modules.Projects.Configuration;
@@ -14,6 +15,10 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
 
         builder.Property(p => p.Description)
             .HasMaxLength(500);
+
+        builder.Property(p => p.Visibility)
+            .IsRequired()
+            .HasDefaultValue(ProjectVisibility.Public);
 
         builder.Property(p => p.CreatedAt)
             .IsRequired()

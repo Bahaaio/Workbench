@@ -7,6 +7,7 @@ using Workbench.Modules.Issues.Enums;
 using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Milestones.Models;
 using Workbench.Modules.Milestones.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Milestones;
@@ -40,6 +41,7 @@ public class MilestoneIssuesServiceTests : IDisposable
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         _db.Milestones.Add(new Milestone
         {
@@ -71,6 +73,7 @@ public class MilestoneIssuesServiceTests : IDisposable
                     OwnerId = 1,
                     Name = "P",
                     Description = null,
+                    Visibility = ProjectVisibility.Public,
                 });
             }
         }

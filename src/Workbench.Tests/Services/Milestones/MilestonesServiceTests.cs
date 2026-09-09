@@ -4,6 +4,7 @@ using Workbench.Common.Exceptions;
 using Workbench.Modules.Authorization.Services;
 using Workbench.Modules.Milestones.Dtos.Requests;
 using Workbench.Modules.Milestones.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Milestones;
@@ -36,6 +37,7 @@ public class MilestonesServiceTests : IDisposable
             OwnerId = ownerId,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }
@@ -131,6 +133,7 @@ public class MilestonesServiceTests : IDisposable
             OwnerId = 99,
             Name = "Other",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         var milestone = new Modules.Milestones.Models.Milestone
         {
@@ -179,6 +182,7 @@ public class MilestonesServiceTests : IDisposable
             OwnerId = 99,
             Name = "Other",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
         var milestone = new Modules.Milestones.Models.Milestone
         {

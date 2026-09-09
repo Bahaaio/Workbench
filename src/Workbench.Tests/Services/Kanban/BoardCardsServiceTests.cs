@@ -8,6 +8,7 @@ using Workbench.Modules.Issues.Models;
 using Workbench.Modules.Kanban.Dtos.Requests;
 using Workbench.Modules.Kanban.Models;
 using Workbench.Modules.Kanban.Services.Implementations;
+using Workbench.Modules.Projects.Enums;
 using Workbench.Tests.Helpers;
 
 namespace Workbench.Tests.Services.Kanban;
@@ -42,6 +43,7 @@ public class BoardCardsServiceTests : IDisposable
             OwnerId = 1,
             Name = "P",
             Description = null,
+            Visibility = ProjectVisibility.Public,
         });
 
         var board = new Board

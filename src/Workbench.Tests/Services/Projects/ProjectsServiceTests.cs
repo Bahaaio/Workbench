@@ -61,6 +61,7 @@ public class ProjectsServiceTests : IDisposable
             OwnerId = ownerId,
             Name = name,
             Description = "Description",
+            Visibility = ProjectVisibility.Public,
         });
         await _db.SaveChangesAsync();
     }
