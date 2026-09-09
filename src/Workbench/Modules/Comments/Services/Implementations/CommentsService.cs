@@ -5,6 +5,7 @@ using Workbench.Data;
 using Workbench.Modules.Auth.Services;
 using Workbench.Modules.Authorization.Extensions;
 using Workbench.Modules.Authorization.Services;
+using Workbench.Modules.Comments.Authorization;
 using Workbench.Modules.Comments.Dtos;
 using Workbench.Modules.Comments.Dtos.Requests;
 using Workbench.Modules.Comments.Mappers;
@@ -64,14 +65,14 @@ public class CommentsService : ICommentsService
     public async Task<CommentDto> Update(int commentId, UpdateCommentRequest request)
     {
         var comment = await _db.Comments
-            .Where(c => c.Id == commentId)
-            .Include(c => c.Author)
-            .Include(c => c.Attachments)
-            .Include(c => c.Issue).ThenInclude(i => i.Project)
-            .SingleOrDefaultAsync()
-            ?? throw new NotFoundException($"Comment with id: {commentId} not found");
+                          .Where(c => c.Id == commentId)
+                          .Include(c => c.Author)
+                          .Include(c => c.Attachments)
+                          .Include(c => c.Issue).ThenInclude(i => i.Project)
+                          .SingleOrDefaultAsync()
+                      ?? throw new NotFoundException($"Comment with id: {commentId} not found");
 
-        await _authGuard.AuthorizeOwnerOrProjectMember(comment);
+        await _authGuard.Authorize(comment, new CommentEditRequirement());
 
         comment.Content = request.Content;
         await _db.SaveChangesAsync();
